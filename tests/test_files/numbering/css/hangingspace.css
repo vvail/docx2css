@@ -1,0 +1,10 @@
+p.hanging_space:before {
+    content: counter(hanginglist-L1, decimal) ")" "\00A0";
+    counter-increment: hanginglist-L1;
+    text-align: left;
+}
+p.hanging_space {
+    margin-left: 1in;
+    text-indent: -0.5in;
+    counter-reset: hanginglist-L2;
+}

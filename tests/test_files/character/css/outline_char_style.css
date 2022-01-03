@@ -1,0 +1,5 @@
+.outline_char_style, .not_outline_char_style {
+    -webkit-text-stroke: 1px;
+    -webkit-text-fill-color: #fff;
+    text-shadow: unset;
+}

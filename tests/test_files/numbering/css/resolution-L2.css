@@ -1,0 +1,14 @@
+p.resolution-L2:before {
+    text-indent: -0.3in;
+    font-family: "Courier New", monospace;
+    font-weight: normal;
+    font-style: normal;
+    content: "\006f";
+    counter-increment: resolutions-L1;
+    text-align: left;
+    display: inline-block;
+}
+p.resolution-L2 {
+    margin-left: 0.6in;
+    counter-reset: resolutions-L2;
+}

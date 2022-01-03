@@ -1,0 +1,4 @@
+p.pagination_widow_control_off_paragraph, p.pagination_widow_control_on_paragraph {
+    widows: 0;
+    orphans: 0;
+}

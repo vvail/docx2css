@@ -1,0 +1,14 @@
+p.border_all_solid_auto_05pt_paragraph {
+    border-top-style: solid;
+    border-top-width: 0.5pt;
+    padding-top: 1pt;
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+    padding-left: 4pt;
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+    padding-bottom: 1pt;
+    border-right-style: solid;
+    border-right-width: 0.5pt;
+    padding-right: 4pt;
+}

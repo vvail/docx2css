@@ -1,0 +1,14 @@
+p.resolution-L3:before {
+    text-indent: -0.3in;
+    font-family: Wingdings;
+    font-weight: normal;
+    font-style: normal;
+    content: "\f0a7";
+    counter-increment: resolutions-L2;
+    text-align: left;
+    display: inline-block;
+}
+p.resolution-L3 {
+    margin-left: 0.9in;
+    counter-reset: resolutions-L3;
+}

@@ -1,0 +1,13 @@
+p.allegations-L1:before {
+    text-indent: -0.5in;
+    font-weight: normal;
+    font-style: normal;
+    content: counter(allegations-L1, decimal) ".";
+    counter-increment: allegations-L1;
+    text-align: left;
+    display: inline-block;
+}
+p.allegations-L1 {
+    margin-left: 0.5in;
+    counter-reset: allegations-L2;
+}

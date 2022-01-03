@@ -1,0 +1,5 @@
+.emboss_char_style, .not_emboss_char_style {
+    -webkit-text-stroke: unset;
+    -webkit-text-fill-color: unset;
+    text-shadow: -1px -1px 0 rgba(255, 255, 255, 0.3), 1px 1px 0 rgba(0, 0, 0, 0.8);
+}

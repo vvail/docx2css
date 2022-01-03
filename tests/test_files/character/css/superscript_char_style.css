@@ -1,0 +1,4 @@
+.superscript_char_style, .not_superscript_char_style {
+    vertical-align: super;
+    font-size: smaller;
+}

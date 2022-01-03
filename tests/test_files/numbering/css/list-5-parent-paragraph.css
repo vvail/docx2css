@@ -1,0 +1,10 @@
+p.list-5-parent-paragraph:before {
+    text-indent: 0;
+    counter-increment: start-at-5-list-L0;
+    text-align: left;
+    display: inline-block;
+}
+p.list-5-parent-paragraph {
+    margin-left: 0;
+    counter-reset: start-at-5-list-L1 4;
+}

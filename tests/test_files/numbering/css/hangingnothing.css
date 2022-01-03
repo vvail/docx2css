@@ -1,0 +1,10 @@
+p.hanging_nothing:before {
+    content: counter(hanginglist-L2, decimal) ")";
+    counter-increment: hanginglist-L2;
+    text-align: left;
+}
+p.hanging_nothing {
+    margin-left: 1.5in;
+    text-indent: -0.5in;
+    counter-reset: hanginglist-L3;
+}

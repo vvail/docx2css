@@ -1,0 +1,5 @@
+.not_emboss_char_style {
+    -webkit-text-stroke: unset;
+    -webkit-text-fill-color: unset;
+    text-shadow: unset;
+}

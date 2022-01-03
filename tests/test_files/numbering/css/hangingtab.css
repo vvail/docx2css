@@ -1,0 +1,11 @@
+p.hanging_tab:before {
+    text-indent: -0.5in;
+    content: counter(hanginglist-L0, decimal) ")";
+    counter-increment: hanginglist-L0;
+    text-align: left;
+    display: inline-block;
+}
+p.hanging_tab {
+    margin-left: 0.5in;
+    counter-reset: hanginglist-L1;
+}

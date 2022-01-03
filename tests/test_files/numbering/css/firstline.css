@@ -1,0 +1,12 @@
+p.first_line:before {
+    text-indent: 0.5in;
+    content: counter(mylist-L0, decimal) ")";
+    counter-increment: mylist-L0;
+    text-align: left;
+    margin-right: 0.5in;
+    display: inline-block;
+}
+p.first_line {
+    margin-left: 0;
+    counter-reset: mylist-L1;
+}

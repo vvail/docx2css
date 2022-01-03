@@ -1,0 +1,5 @@
+.underline_rgb_char_style {
+    text-decoration-line: underline;
+    text-decoration-style: solid;
+    text-decoration-color: #F00;
+}

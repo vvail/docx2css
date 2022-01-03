@@ -1,0 +1,4 @@
+.bold_italic_char_style, .bold_italic_underline_char_style {
+    font-weight: bold;
+    font-style: italic;
+}

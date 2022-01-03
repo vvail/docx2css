@@ -1,0 +1,4 @@
+.underline_char_style, .not_underline_char_style {
+    text-decoration-line: underline;
+    text-decoration-style: solid;
+}

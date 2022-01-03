@@ -1,0 +1,10 @@
+p.list-5-paragraph:before {
+    text-indent: -1in;
+    content: counter(start-at-5-list-L1, decimal) ")";
+    counter-increment: start-at-5-list-L1;
+    text-align: left;
+    display: inline-block;
+}
+p.list-5-paragraph {
+    margin-left: 1in;
+}

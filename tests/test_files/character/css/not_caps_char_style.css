@@ -1,0 +1,4 @@
+.not_caps_char_style {
+    text-transform: none;
+    font-variant-caps: normal;
+}

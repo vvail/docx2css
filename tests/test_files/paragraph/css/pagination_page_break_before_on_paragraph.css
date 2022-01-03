@@ -1,0 +1,3 @@
+p.pagination_page_break_before_on_paragraph, p.pagination_page_break_before_off_paragraph {
+    break-before: page;
+}
