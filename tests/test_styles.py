@@ -789,7 +789,9 @@ class DocDefaultsTestCase(TestHarness):
 class RequeteTestCase(TestCase):
 
     def test_requete(self):
-        css = open_docx('test_files/numbering/docx/requete.docx').cssText
+        stylesheet = open_docx('test_files/numbering/docx/requete.docx')
+        stylesheet.preferences['simulate_printed_page'] = True
+        css = stylesheet.cssText
         with open('test_files/numbering/css/requete.css', 'r') as expected:
             self.assertEqual(expected.read(), css)
 
