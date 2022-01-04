@@ -790,7 +790,8 @@ class RequeteTestCase(TestCase):
 
     def test_requete(self):
         css = open_docx('test_files/numbering/docx/requete.docx').cssText
-        print(css)
+        with open('test_files/numbering/css/requete.css', 'r') as expected:
+            self.assertEqual(expected.read(), css)
 
     def test_normal_paragraph_selector(self):
         package = OpcPackage('test_files/numbering/docx/requete.docx')

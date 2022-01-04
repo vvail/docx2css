@@ -40,21 +40,6 @@ class Stylesheet:
                 self._css_stylesheet.add(r)
 
     @property
-    def css_preferences(self):
-        if not hasattr(self, '_css_preferences'):
-            default_preferences = {
-                'indentClosingBrace': False,
-                'omitLastSemicolon': False,
-            }
-            preferences = cssutils.serialize.Preferences(**default_preferences)
-            setattr(self, '_css_preferences', preferences)
-        return getattr(self, '_css_preferences')
-
-    @css_preferences.setter
-    def css_preferences(self, preferences):
-        setattr(self, '_css_preferences', preferences)
-
-    @property
     def css_stylesheet(self):
         self._css_stylesheet = cssutils.css.CSSStyleSheet()
         self._serialize_css()
@@ -65,7 +50,6 @@ class Stylesheet:
         return self.css_stylesheet.cssText.decode('utf-8')
 
     def _serialize_css(self):
-        cssutils.serialize.CSSSerializer(self.css_preferences)
 
         # Serialize body
         section = self.opc_package.sections[-1]
