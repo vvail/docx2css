@@ -1,11 +1,11 @@
-p.first_line_nothing:before {
+p.firstlinenothing:before {
     text-indent: 0.5in;
     content: counter(mylist-L2, lower-roman) ")";
     counter-increment: mylist-L2;
     text-align: left;
     display: inline-block;
 }
-p.first_line_nothing {
+p.firstlinenothing {
     margin-left: 0.5in;
     counter-reset: mylist-L3;
 }

@@ -1,4 +1,4 @@
-.subscript_char_style, .not_subscript_char_style {
+.subscriptcharstyle, .notsubscriptcharstyle {
     vertical-align: sub;
     font-size: smaller;
 }

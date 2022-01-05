@@ -1,4 +1,4 @@
-.not_strike_dstrike_not_underline_char_style, .not_strike_not_dstrike_not_underline_char_style {
+.notstrikedstrikenotunderlinecharstyle, .notstrikenotdstrikenotunderlinecharstyle {
     text-decoration-line: line-through;
     text-decoration-style: double;
 }

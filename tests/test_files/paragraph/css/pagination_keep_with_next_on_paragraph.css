@@ -1,3 +1,3 @@
-p.pagination_keep_with_next_on_paragraph, p.pagination_keep_with_next_off_paragraph {
+p.paginationkeepwithnextonparagraph, p.paginationkeepwithnextoffparagraph {
     break-after: avoid;
 }

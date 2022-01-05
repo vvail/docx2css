@@ -130,7 +130,8 @@ class DocxStyle(etree.ElementBase):
 
     def css_current_selector(self):
         """Get the selector for the current style only"""
-        class_name = f".{''.join(self.name.split())}"
+        # class_name = f".{''.join(self.name.split())}"
+        class_name = f'.{self.id}'
         prefix = self.css_selector_prefix
         if class_name == '.Normal' or re.match('h[1-6]', prefix):
             return prefix
