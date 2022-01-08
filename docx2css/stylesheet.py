@@ -4,24 +4,11 @@ from docx2css.ooxml import NAMESPACES
 from docx2css.ooxml.constants import CONTENT_TYPE
 
 
-INCLUDE_DOC_DEFAULTS = 'include_doc_defaults'
-INCLUDE_PAGE_RULE = 'include_page_rule'
-SIMULATE_PRINTED_PAGE = 'simulate_printed_page'
-
-DEFAULT_PREFERENCES = {
-    INCLUDE_DOC_DEFAULTS: True,
-    INCLUDE_PAGE_RULE: True,
-    SIMULATE_PRINTED_PAGE: False,
-}
-
-
 class Stylesheet:
 
     def __init__(self, opc_package, preferences=None):
         self.opc_package = opc_package
-        if preferences is None:
-            preferences = DEFAULT_PREFERENCES.copy()
-        self.preferences = preferences
+        self.preferences = preferences or {}
         self._css_stylesheet = None
 
     def css_body_style(self):
@@ -45,13 +32,10 @@ class Stylesheet:
             if style_properties.getProperty(prop.name) is None:
                 style_properties.setProperty(prop)
 
-    def _add_rule(self, rule):
-        """Add a rule, or a set of rules to the CSSStylesheet"""
-        if isinstance(rule, cssutils.css.CSSRule):
-            self._css_stylesheet.add(rule)
-        else:
-            for r in rule:
-                self._css_stylesheet.add(r)
+    def _add_rules(self, rule):
+        """Add a set of rules to the CSSStylesheet"""
+        for r in rule:
+            self._css_stylesheet.add(r)
 
     @property
     def css_stylesheet(self):
@@ -67,20 +51,8 @@ class Stylesheet:
 
         # Serialize body
         section = self.opc_package.sections[-1]
-        if self.preferences.get(INCLUDE_PAGE_RULE,
-                                DEFAULT_PREFERENCES[INCLUDE_PAGE_RULE]):
-            self._add_rule(section.css_style_rule_print())
-        if self.preferences.get(SIMULATE_PRINTED_PAGE,
-                                DEFAULT_PREFERENCES[SIMULATE_PRINTED_PAGE]):
-            self._add_rule(section.css_style_rule_screen())
-        if self.preferences.get(INCLUDE_DOC_DEFAULTS,
-                                DEFAULT_PREFERENCES[INCLUDE_DOC_DEFAULTS]):
-            self._add_rule(self.css_body_style())
+        self._add_rules(section.css_style_rules(self.preferences))
+        self._add_rules([self.css_body_style()])
 
         for style in self.opc_package.styles.values():
-            # TODO: Handle numbering styles
-            if style.type == 'numbering':
-                continue
-            if style.numbering is not None:
-                self._add_rule(style.css_numbering_style_rule())
-            self._add_rule(style.css_style_rule())
+            self._add_rules(style.css_style_rules())

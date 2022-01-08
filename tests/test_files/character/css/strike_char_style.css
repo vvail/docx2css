@@ -1,4 +1,4 @@
-.strikecharstyle, .notstrikecharstyle {
+span.strikecharstyle, span.notstrikecharstyle {
     text-decoration-line: line-through;
     text-decoration-style: solid;
 }

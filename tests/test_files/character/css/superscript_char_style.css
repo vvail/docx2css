@@ -1,4 +1,4 @@
-.superscriptcharstyle, .notsuperscriptcharstyle {
+span.superscriptcharstyle, span.notsuperscriptcharstyle {
     vertical-align: super;
     font-size: smaller;
 }

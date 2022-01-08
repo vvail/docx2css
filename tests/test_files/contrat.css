@@ -1,0 +1,193 @@
+@page {
+    size: 8.5in 11in;
+    margin: 1in 1in 1in 1in;
+    }
+@media screen {
+    html {
+        background-color: gainsboro;
+    }
+    body {
+        background-color: white;
+        border: 1px darkgray solid;
+        box-shadow: 1rem 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        max-width: 6.5in;
+        margin: 1em auto;
+        padding: 1in 1in 1in 1in;
+    }
+}
+body {
+    font-family: "Times New Roman", serif;
+}
+p, h1, h2, h3 {
+    text-align: justify;
+    font-size: 12pt;
+}
+h1 {
+    break-after: avoid;
+    margin-top: 24pt;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14pt;
+}
+h2:before {
+    text-indent: -0.4in;
+    font-weight: normal;
+    font-style: normal;
+    text-transform: none;
+    content: counter(counter0-L0, decimal) ".";
+    counter-increment: counter0-L0;
+    text-align: left;
+    display: inline-block;
+}
+h2 {
+    margin-bottom: 12pt;
+    margin-top: 12pt;
+    margin-left: 0.4in;
+    counter-reset: counter0-L1;
+}
+h3 {
+    break-after: avoid;
+    margin-top: 12pt;
+    margin-left: 0.4in;
+    font-weight: bold;
+}
+p.align-right {
+    text-align: end;
+}
+p.allegations-L1:before {
+    text-indent: -0.4in;
+    font-weight: normal;
+    font-style: normal;
+    content: counter(counter0-L0, decimal) "." counter(counter0-L1, decimal);
+    counter-increment: counter0-L1;
+    text-align: left;
+    display: inline-block;
+}
+p.allegations-L1, p.allegations-L2, p.allegations-L3 {
+    margin-bottom: 12pt;
+    margin-top: 12pt;
+    margin-left: 0.8in;
+    counter-reset: counter0-L2;
+}
+p.allegations-L2:before {
+    text-indent: -0.4in;
+    font-weight: normal;
+    font-style: normal;
+    content: counter(counter0-L0, decimal) "." counter(counter0-L1, decimal) "." counter(counter0-L2, decimal);
+    counter-increment: counter0-L2;
+    text-align: left;
+    display: inline-block;
+}
+p.allegations-L2, p.allegations-L3 {
+    margin-left: 1.2in;
+    counter-reset: counter0-L3;
+}
+p.allegations-L3:before {
+    text-indent: -0.25in;
+    content: counter(counter0-L0, decimal) "." counter(counter0-L1, decimal) "." counter(counter0-L2, decimal) "." counter(counter0-L3, decimal) ".";
+    counter-increment: counter0-L3;
+    text-align: left;
+    display: inline-block;
+}
+p.allegations-L3 {
+    margin-left: 1in;
+    counter-reset: counter0-L4;
+}
+p.center {
+    text-align: center;
+}
+p.citation {
+    margin-left: 0.5in;
+    margin-right: 0.5in;
+    font-style: italic;
+    font-size: 11pt;
+}
+p.enum:before {
+    text-indent: -0.2in;
+    content: counter(counter3-L0, lower-alpha) ")";
+    counter-increment: counter3-L0;
+    text-align: left;
+    display: inline-block;
+}
+p.enum {
+    margin-bottom: 12pt;
+    margin-top: 12pt;
+    margin-left: 1in;
+    counter-reset: counter3-L1;
+}
+p.float {
+    margin-left: 0.5in;
+    text-indent: -0.5in;
+}
+p.ligne-15 {
+    border-bottom-style: solid;
+    border-bottom-width: 0.75pt;
+    padding-bottom: 1pt;
+    margin-bottom: 24pt;
+    margin-top: 6pt;
+    font-size: 1pt;
+}
+p.no-space-center-bold {
+    text-align: center;
+    font-weight: bold;
+}
+p.no-space, p.no-space-center-bold {
+    margin-bottom: 0;
+    margin-top: 0;
+}
+p.resolution-L1:before {
+    text-indent: -0.3in;
+    font-family: Symbol, serif;
+    content: "\f0b7";
+    counter-increment: counter1-L0;
+    text-align: left;
+    display: inline-block;
+}
+p.resolution-L1, p.resolution-L2, p.resolution-L3 {
+    margin-bottom: 12pt;
+    margin-top: 12pt;
+    margin-left: 0.3in;
+    counter-reset: counter1-L1;
+}
+p.resolution-L2:before {
+    text-indent: -0.3in;
+    font-family: "Courier New", monospace;
+    content: "\006f";
+    counter-increment: counter1-L1;
+    text-align: left;
+    display: inline-block;
+}
+p.resolution-L2 {
+    margin-left: 0.6in;
+    counter-reset: counter1-L2;
+}
+p.resolution-L3:before {
+    text-indent: -0.3in;
+    font-family: Wingdings;
+    content: "\f0a7";
+    counter-increment: counter1-L2;
+    text-align: left;
+    display: inline-block;
+}
+p.resolution-L3 {
+    margin-left: 0.9in;
+    counter-reset: counter1-L3;
+}
+p.retrait {
+    margin-left: 0.5in;
+}
+p.signature-date {
+    break-after: avoid;
+    margin-top: 18pt;
+}
+p.signature-ligne {
+    break-after: avoid;
+    break-inside: avoid;
+    border-bottom-style: solid;
+    border-bottom-width: 0.75pt;
+    padding-bottom: 1pt;
+    margin-bottom: 0;
+    margin-top: 18pt;
+    font-family: "Monotype Corsiva", PMingLiU, 新細明體, serif, cursive;
+    font-size: 16pt;
+}

@@ -1,0 +1,212 @@
+@page {
+    size: 8.5in 11in;
+    margin: 0.5in 0.75in 0.5in 1.5in;
+    }
+@media screen {
+    html {
+        background-color: gainsboro;
+    }
+    body {
+        background-color: white;
+        border: 1px darkgray solid;
+        box-shadow: 1rem 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        max-width: 6.25in;
+        margin: 1em auto;
+        padding: 0.5in 0.75in 0.5in 1.5in;
+    }
+}
+body {
+    font-family: Calibri, sans-serif;
+    font-size: 11pt;
+    line-height: 1.08;
+    margin-bottom: 8pt;
+}
+p, h1, h2, h3 {
+    line-height: 1;
+    text-align: justify;
+    font-family: "Times New Roman", serif;
+    font-size: 12pt;
+}
+h1:before {
+    text-indent: 0;
+    counter-increment: counter1-L0;
+    text-align: left;
+    margin-right: 0;
+    display: inline-block;
+}
+h1 {
+    break-after: avoid;
+    break-inside: avoid;
+    border-top-style: solid;
+    border-top-width: 0.5pt;
+    padding-top: 6pt;
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+    padding-bottom: 6pt;
+    margin-left: -0.25in;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 14pt;
+    counter-reset: counter1-L1;
+}
+h2 {
+    break-after: avoid;
+    break-inside: avoid;
+    margin-bottom: 12pt;
+    margin-top: 24pt;
+    margin-left: -0.25in;
+    text-align: start;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+h3:before {
+    text-indent: -0.25in;
+    content: counter(counter1-L2, decimal) ".";
+    counter-increment: counter1-L2;
+    text-align: left;
+    display: inline-block;
+}
+h3 {
+    break-after: avoid;
+    break-inside: avoid;
+    margin-bottom: 12pt;
+    margin-top: 18pt;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    margin-left: 0.5in;
+    counter-reset: counter1-L3;
+}
+span.Heading1Char {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 14pt;
+}
+span.Heading2Char {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 12pt;
+}
+span.Heading3Char {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 12pt;
+}
+p.allegations-L1:before {
+    text-indent: 0;
+    counter-increment: counter1-L3;
+    text-align: left;
+    margin-right: 0;
+    display: inline-block;
+}
+p.allegations-L1, p.allegations-L2, p.allegations-L3 {
+    margin-bottom: 12pt;
+    margin-top: 12pt;
+    margin-left: 0.5in;
+    counter-reset: counter1-L4;
+}
+p.allegations-L2:before {
+    text-indent: -0.25in;
+    content: "(" counter(counter1-L4, lower-alpha) ")";
+    counter-increment: counter1-L4;
+    text-align: left;
+    display: inline-block;
+}
+p.allegations-L2, p.allegations-L3 {
+    margin-left: 0.75in;
+    counter-reset: counter1-L5;
+}
+p.allegations-L3:before {
+    text-indent: -0.25in;
+    content: "(" counter(counter1-L5, lower-roman) ")";
+    counter-increment: counter1-L5;
+    text-align: left;
+    display: inline-block;
+}
+p.allegations-L3 {
+    margin-left: 1in;
+    counter-reset: counter1-L6;
+}
+p.signature-date, p.signature-ligne, p.signature-nom {
+    break-after: avoid;
+    margin-top: 18pt;
+    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
+}
+p.signature-ligne {
+    border-bottom-style: solid;
+    border-bottom-width: 0.75pt;
+    padding-bottom: 1pt;
+    margin-bottom: 0;
+    font-family: "Monotype Corsiva", cursive;
+    font-size: 16pt;
+}
+p.signature-nom {
+    margin-bottom: 0;
+    margin-top: 0;
+}
+p.resolution-L1:before {
+    text-indent: -0.25in;
+    font-family: Symbol, serif;
+    font-weight: normal;
+    font-style: normal;
+    text-transform: none;
+    content: "\f0b7";
+    counter-increment: counter0-L0;
+    text-align: left;
+    display: inline-block;
+}
+p.resolution-L1 {
+    margin-bottom: 12pt;
+    margin-top: 12pt;
+    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
+    margin-left: 0.25in;
+    counter-reset: counter0-L1;
+}
+p.resolution-L2:before {
+    text-indent: -0.25in;
+    font-family: "Courier New", monospace;
+    font-weight: normal;
+    font-style: normal;
+    content: "\006f";
+    counter-increment: counter0-L1;
+    text-align: left;
+    display: inline-block;
+}
+p.resolution-L2 {
+    margin-bottom: 12pt;
+    margin-top: 12pt;
+    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
+    margin-left: 0.5in;
+    counter-reset: counter0-L2;
+}
+p.resolution-L3:before {
+    text-indent: -0.25in;
+    font-family: Wingdings;
+    font-weight: normal;
+    font-style: normal;
+    content: "\f0a7";
+    counter-increment: counter0-L2;
+    text-align: left;
+    display: inline-block;
+}
+p.resolution-L3 {
+    margin-bottom: 12pt;
+    margin-top: 12pt;
+    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
+    margin-left: 0.75in;
+    counter-reset: counter0-L3;
+}
+p.no-space, p.no-space-center-bold {
+    margin-bottom: 0;
+    margin-top: 0;
+    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
+}
+p.no-space-center-bold {
+    text-align: center;
+    font-weight: bold;
+}
+p.retrait {
+    margin-left: 0.25in;
+}

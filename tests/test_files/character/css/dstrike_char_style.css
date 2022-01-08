@@ -1,4 +1,4 @@
-.dstrikecharstyle, .notdstrikecharstyle {
+span.dstrikecharstyle, span.notdstrikecharstyle {
     text-decoration-line: line-through;
     text-decoration-style: double;
 }

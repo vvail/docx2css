@@ -1,4 +1,4 @@
-.strikenotdstrikeunderlinewavecharstyle {
+span.strikenotdstrikeunderlinewavecharstyle {
     text-decoration-line: line-through underline;
     text-decoration-style: solid;
 }

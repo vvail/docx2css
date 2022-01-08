@@ -5,6 +5,10 @@ from docx2css.ooxml import w, wordml
 from docx2css.ooxml.constants import NAMESPACES as NS
 
 
+INCLUDE_PAGE_RULE = 'include_page_rule'
+SIMULATE_PRINTED_PAGE = 'simulate_printed_page'
+
+
 class Sections:
 
     def __init__(self, document_part):
@@ -70,6 +74,16 @@ class Section(etree.ElementBase):
 
             setattr(self, '_css_style_rule_screen', screen)
         return getattr(self, '_css_style_rule_screen')
+
+    def css_style_rules(self, preferences=None):
+        preferences = preferences or {}
+        rules = []
+        if preferences.get(INCLUDE_PAGE_RULE, True):
+            rules.append(self.css_style_rule_print())
+        if preferences.get(SIMULATE_PRINTED_PAGE, False):
+            rules.append(self.css_style_rule_screen())
+
+        return rules
 
 
 @wordml('pgMar')

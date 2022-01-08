@@ -220,7 +220,7 @@ class Level(etree.ElementBase):
     def css_selector(self):
         if self.paragraph_style is not None:
             p_style = self.get_paragraph_style()
-            return f'{p_style.css_selector()}:before'
+            return f'{p_style.css_current_selector()}:before'
 
     def css_style_declaration(self):
         css_style = css.CSSStyleDeclaration()

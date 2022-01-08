@@ -79,6 +79,11 @@ class DocxStyle(etree.ElementBase):
             return el.get(w('val'))
 
     @property
+    def parent(self):
+        """Return the parent style or None"""
+        return self.stylesheet.get(self.parent_id, None)
+
+    @property
     def stylesheet(self):
         return getattr(self, '_stylesheet', None)
 
@@ -93,9 +98,16 @@ class DocxStyle(etree.ElementBase):
             element.styles = self.stylesheet
         return element
 
-    def get_numbering_level_for_style(self):
-        if self.numbering is not None:
-            return self.numbering.definition.get_level_for_paragraph(self.id)
+    def get_numbering_definition(self):
+        """Return the definition of the numbering, meaning the method
+        will lookup the numId and return the actual AbstractNumbering.
+        The numId can be inherited from the parent style.
+        """
+        definition = self.numbering.definition
+        if definition is None:
+            return self.parent.get_numbering_definition()
+        else:
+            return definition
 
     @property
     def children_styles(self):
@@ -104,6 +116,118 @@ class DocxStyle(etree.ElementBase):
                         if s.parent_id == self.id]
             setattr(self, '_children_styles', children)
         return self._children_styles
+
+    def css_current_selector(self):
+        """Get the selector for the current style only"""
+        return f"{self.css_selector_prefix}.{self.id}"
+
+    def css_selector(self):
+        """Get the CSS selector for this style, including all the
+        children
+        """
+        names = [self.css_current_selector()]
+
+        for child in self.children_styles:
+            names.append(child.css_selector())
+        return ', '.join(names)
+
+    @property
+    def css_selector_prefix(self):
+        return ''
+
+    @property
+    def css_properties(self):
+        for d in self.iterdescendants():
+            if isinstance(d, CssPropertyAdapter):
+                yield d
+
+    def css_style_declaration(self):
+        css_style = cssutils.css.CSSStyleDeclaration()
+        package = self.stylesheet.opc_package
+        for prop in self.css_properties:
+            prop.set_css_style(css_style, package)
+        return css_style
+
+    def css_style_rule(self):
+        if not hasattr(self, '_css_style_rule'):
+            css_style = self.css_style_declaration()
+            rule = cssutils.css.CSSStyleRule(self.css_selector(), style=css_style)
+            setattr(self, '_css_style_rule', rule)
+        return getattr(self, '_css_style_rule')
+
+    def css_style_rules(self):
+        return self.css_style_rule(),
+
+
+class CharacterStyle(DocxStyle):
+
+    @property
+    def css_selector_prefix(self):
+        return 'span'
+
+
+class ParagraphStyle(DocxStyle):
+
+    def css_current_selector(self):
+        class_name = f'.{self.id}'
+        prefix = self.css_selector_prefix
+        if class_name == '.Normal' or re.match('h[1-6]', prefix):
+            return prefix
+        else:
+            return f"{self.css_selector_prefix}{class_name}"
+
+    def css_selector(self):
+        current_selector = self.css_current_selector()
+        names = [current_selector]
+
+        def not_p(s):
+            return s.parent_id == 'Normal' and not s.css_selector_prefix == 'p'
+
+        # Treat Normal style a bit differently
+        if current_selector == 'p':
+            children = filter(not_p, self.children_styles)
+        else:
+            children = self.children_styles
+
+        for child in children:
+            names.append(child.css_selector())
+        return ', '.join(names)
+
+    @property
+    def css_selector_prefix(self):
+        class_name = ''.join(self.name.split())
+        regex = re.match('heading([1-6])', class_name)
+        if regex:
+            return f'h{regex.group(1)}'
+        return 'p'
+
+    def css_style_rule(self):
+        if not hasattr(self, '_css_style_rule'):
+            css_style = self.css_style_declaration()
+            if self.numbering is not None:
+                self.pull_margin_left(css_style)
+                self.pull_text_indent(css_style)
+                self.adjust_for_indent(css_style)
+
+                # Also, it is necessary to reset the appropriate counters
+                # since it cannot be done at on the pseudo :before element
+                level = self.get_numbering_level_for_style()
+                css_style['counter-reset'] = level.css_counter_resets()
+            rule = cssutils.css.CSSStyleRule(self.css_selector(), style=css_style)
+            setattr(self, '_css_style_rule', rule)
+        return getattr(self, '_css_style_rule')
+
+    def css_style_rules(self):
+        if self.numbering is not None:
+            return (
+                self.css_numbering_style_rule(),
+                self.css_style_rule(),
+            )
+        else:
+            return self.css_style_rule(),
+
+    def get_numbering_level_for_style(self):
+        return self.get_numbering_definition().get_level_for_paragraph(self.id)
 
     def css_numbering_style_declaration(self):
         if self.numbering is not None:
@@ -127,76 +251,6 @@ class DocxStyle(etree.ElementBase):
         else:
             # Positive text-indent is a first line indent
             css_style['text-indent'] = ''
-
-    def css_current_selector(self):
-        """Get the selector for the current style only"""
-        # class_name = f".{''.join(self.name.split())}"
-        class_name = f'.{self.id}'
-        prefix = self.css_selector_prefix
-        if class_name == '.Normal' or re.match('h[1-6]', prefix):
-            return prefix
-        else:
-            return f"{self.css_selector_prefix}{class_name}"
-
-    def css_selector(self):
-        """Get the CSS selector for this style, including all the
-        children
-        """
-        current_selector = self.css_current_selector()
-        names = [current_selector]
-
-        def not_p(s):
-            return s.parent_id == 'Normal' and not s.css_selector_prefix == 'p'
-
-        # Treat Normal style a bit differently
-        if current_selector == 'p':
-            children = filter(not_p, self.children_styles)
-        else:
-            children = self.children_styles
-
-        for child in children:
-            names.append(child.css_selector())
-        return ', '.join(names)
-
-    @property
-    def css_selector_prefix(self):
-        if self.type == 'paragraph':
-            class_name = ''.join(self.name.split())
-            regex = re.match('heading([1-6])', class_name)
-            if regex:
-                return f'h{regex.group(1)}'
-            return 'p'
-        else:
-            return ''
-
-    @property
-    def css_properties(self):
-        for d in self.iterdescendants():
-            if isinstance(d, CssPropertyAdapter):
-                yield d
-
-    def css_style_declaration(self):
-        css_style = cssutils.css.CSSStyleDeclaration()
-        package = self.stylesheet.opc_package
-        for prop in self.css_properties:
-            prop.set_css_style(css_style, package)
-        return css_style
-
-    def css_style_rule(self):
-        if not hasattr(self, '_css_style_rule'):
-            css_style = self.css_style_declaration()
-            if self.numbering is not None:
-                self.pull_margin_left(css_style)
-                self.pull_text_indent(css_style)
-                self.adjust_for_indent(css_style)
-
-                # Also, it is necessary to reset the appropriate counters
-                # since it cannot be done at on the pseudo :before element
-                level = self.get_numbering_level_for_style()
-                css_style['counter-reset'] = level.css_counter_resets()
-            rule = cssutils.css.CSSStyleRule(self.css_selector(), style=css_style)
-            setattr(self, '_css_style_rule', rule)
-        return getattr(self, '_css_style_rule')
 
     def pull_margin_left(self, css_style):
         """
@@ -224,17 +278,25 @@ class DocxStyle(etree.ElementBase):
             css_style[prop_name] = n_property.propertyValue.cssText
 
 
-class CharacterStyle(DocxStyle):
-    pass
+class NumberingStyle(DocxStyle):
+
+    def css_style_rules(self):
+        # TODO: Handle numbering styles
+        return []
 
 
-class ParagraphStyle(DocxStyle):
-    pass
+class TableStyle(DocxStyle):
+
+    def css_style_rules(self):
+        # TODO: Handle table styles
+        return []
 
 
 STYLE_MAPPING = {
     'character': CharacterStyle,
+    'numbering': NumberingStyle,
     'paragraph': ParagraphStyle,
+    'table': TableStyle,
 }
 
 

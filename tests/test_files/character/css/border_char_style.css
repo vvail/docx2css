@@ -1,4 +1,4 @@
-.bordercharstyle, .nobordercharstyle {
+span.bordercharstyle, span.nobordercharstyle {
     border-style: solid;
     border-width: 0.5pt;
 }

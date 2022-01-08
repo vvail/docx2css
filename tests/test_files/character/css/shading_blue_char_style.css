@@ -1,4 +1,4 @@
-.shadingbluecharstyle, .noshadingcharstyle {
+span.shadingbluecharstyle, span.noshadingcharstyle {
     border-style: none;
     background-color: #0070C0;
 }

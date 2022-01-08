@@ -1,4 +1,4 @@
-.underlinedashcharstyle {
+span.underlinedashcharstyle {
     text-decoration-line: underline;
     text-decoration-style: dashed;
 }

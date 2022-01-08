@@ -788,12 +788,44 @@ class DocDefaultsTestCase(TestHarness):
 
 class RequeteTestCase(TestCase):
 
-    def test_requete(self):
-        stylesheet = open_docx('test_files/numbering/docx/requete.docx')
+    def compare_documents(self, docx_source, expected_css):
+        stylesheet = open_docx(docx_source)
         stylesheet.preferences['simulate_printed_page'] = True
         css = stylesheet.cssText
-        with open('test_files/numbering/css/requete.css', 'r') as expected:
+        with open(expected_css, 'r') as expected:
             self.assertEqual(expected.read(), css)
+
+    def test_endos(self):
+        self.compare_documents('test_files/endos.docx',
+                               'test_files/endos.css')
+
+    def test_contract(self):
+        self.compare_documents('test_files/contrat.docx',
+                               'test_files/contrat.css')
+
+    def test_enveloppe(self):
+        self.compare_documents('test_files/enveloppe.docx',
+                               'test_files/enveloppe.css')
+
+    def test_fax(self):
+        self.compare_documents('test_files/fax.docx',
+                               'test_files/fax.css')
+
+    def test_labels(self):
+        self.compare_documents('test_files/labels.docx',
+                               'test_files/labels.css')
+
+    def test_memo(self):
+        self.compare_documents('test_files/memo.docx',
+                               'test_files/memo.css')
+
+    def test_requete(self):
+        self.compare_documents('test_files/numbering/docx/requete.docx',
+                               'test_files/numbering/css/requete.css')
+
+    def test_resolution(self):
+        self.compare_documents('test_files/resolution.docx',
+                               'test_files/resolution.css')
 
     def test_normal_paragraph_selector(self):
         package = OpcPackage('test_files/numbering/docx/requete.docx')

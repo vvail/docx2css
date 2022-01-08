@@ -1,4 +1,4 @@
-.notoutlinecharstyle {
+span.notoutlinecharstyle {
     -webkit-text-stroke: unset;
     -webkit-text-fill-color: unset;
     text-shadow: unset;

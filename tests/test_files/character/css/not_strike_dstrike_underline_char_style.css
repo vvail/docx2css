@@ -1,4 +1,4 @@
-.notstrikedstrikeunderlinecharstyle, .notstrikedstrikenotunderlinecharstyle, .notstrikenotdstrikenotunderlinecharstyle, .notstrikenotdstrikeunderlinecharstyle {
+span.notstrikedstrikeunderlinecharstyle, span.notstrikedstrikenotunderlinecharstyle, span.notstrikenotdstrikenotunderlinecharstyle, span.notstrikenotdstrikeunderlinecharstyle {
     text-decoration-line: line-through underline;
     text-decoration-style: double;
 }

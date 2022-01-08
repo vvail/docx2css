@@ -1,4 +1,4 @@
-.notsmallcapscharstyle {
+span.notsmallcapscharstyle {
     text-transform: none;
     font-variant-caps: normal;
 }

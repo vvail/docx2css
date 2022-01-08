@@ -1,4 +1,4 @@
-.underlinecharstyle, .notunderlinecharstyle {
+span.underlinecharstyle, span.notunderlinecharstyle {
     text-decoration-line: underline;
     text-decoration-style: solid;
 }

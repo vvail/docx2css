@@ -1,0 +1,88 @@
+@page {
+    size: 11in 8.5in;
+    margin: 0.3in 1in 0.3in 6.5in;
+    }
+@media screen {
+    html {
+        background-color: gainsboro;
+    }
+    body {
+        background-color: white;
+        border: 1px darkgray solid;
+        box-shadow: 1rem 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        max-width: 3.5in;
+        margin: 1em auto;
+        padding: 0.3in 1in 0.3in 6.5in;
+    }
+}
+body {
+    font-family: "Times New Roman", PMingLiU, 新細明體, serif;
+}
+p, h1, h2, h3 {
+    line-height: 12pt;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
+    font-family: Arial, sans-serif;
+    font-size: 12pt;
+}
+h1:before {
+    text-indent: 0;
+    font-weight: normal;
+    font-style: normal;
+    text-transform: none;
+    counter-increment: counter5-L0;
+    text-align: left;
+    margin-right: 0;
+    display: inline-block;
+}
+h1 {
+    break-after: avoid;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    margin-left: 0;
+    counter-reset: counter5-L1;
+}
+h2 {
+    break-after: avoid;
+    margin-bottom: 5pt;
+    margin-top: 24pt;
+    font-weight: bold;
+}
+h3 {
+    break-after: avoid;
+    margin-top: 18pt;
+    margin-left: 0.5in;
+    font-weight: bold;
+}
+p.align-right {
+    text-align: end;
+}
+p.fixed, p.fixed-center {
+    font-family: "Lucida Sans Typewriter", monospace;
+}
+p.fixed-center {
+    text-align: center;
+}
+p.center {
+    text-align: center;
+}
+p.ligne-15 {
+    border-bottom-style: solid;
+    border-bottom-width: 0.75pt;
+    line-height: 1pt;
+    font-size: 1pt;
+}
+p.no-space-center-bold {
+    text-align: center;
+    font-weight: bold;
+}
+p.no-space, p.no-space-center-bold {
+    margin-bottom: 0;
+    margin-top: 0;
+}
+p.tab {
+    margin-bottom: 5pt;
+    margin-top: 5pt;
+    margin-left: 0.25in;
+}
