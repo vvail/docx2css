@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from docx2css.utils import CSSColor
+from docx2css.utils import CSSColor, CssUnit
 
 
 class CSSColorTestCase(TestCase):
@@ -90,3 +90,54 @@ class CSSColorTestCase(TestCase):
         hex_tint = '%02x' % int(.6 * 255)
         color.apply_rgb_tint(hex_tint)
         self.assertEqual('d99694', str(color))
+
+
+class CssUnitTestCase(TestCase):
+    def test_from_invalid_unit(self):
+        with self.assertRaises(ValueError):
+            CssUnit(1, '%')
+
+    def test_from_emu(self):
+        self.assertEqual(1, CssUnit(1, 'emu'))
+
+    def test_from_px(self):
+        self.assertEqual(9525, CssUnit(1, 'px'))
+
+    def test_from_pc(self):
+        self.assertEqual(152400, CssUnit(1, 'pc'))
+
+    def test_from_pt(self):
+        self.assertEqual(12700, CssUnit(1, 'pt'))
+
+    def test_from_mm(self):
+        self.assertEqual(36000, CssUnit(1, 'mm'))
+
+    def test_from_cm(self):
+        self.assertEqual(360000, CssUnit(1, 'cm'))
+
+    def test_from_in(self):
+        self.assertEqual(914400, CssUnit(1, 'in'))
+
+    def test_from_twip(self):
+        self.assertEqual(914400, CssUnit(1440, 'twip'))
+
+    def test_px(self):
+        self.assertEqual(1, CssUnit(1, 'px').px)
+
+    def test_pc(self):
+        self.assertEqual(1, CssUnit(1, 'pc').pc)
+
+    def test_pt(self):
+        self.assertEqual(1, CssUnit(1, 'pt').pt)
+
+    def test_cm(self):
+        self.assertEqual(1, CssUnit(1, 'cm').cm)
+
+    def test_mm(self):
+        self.assertEqual(1, CssUnit(1, 'mm').mm)
+
+    def test_inches(self):
+        self.assertEqual(1, CssUnit(1, 'in').inches)
+
+    def test_twips(self):
+        self.assertEqual(1, CssUnit(1, 'twip').twips)

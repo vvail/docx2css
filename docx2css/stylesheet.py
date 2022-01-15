@@ -11,6 +11,10 @@ class Stylesheet:
         self.preferences = preferences or {}
         self._css_stylesheet = None
 
+    @property
+    def page(self):
+        return self.opc_package.sections[-1]
+
     def css_body_style(self):
         style = self.default_css_properties()
         return cssutils.css.CSSStyleRule('body', style=style)

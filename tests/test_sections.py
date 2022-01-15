@@ -21,26 +21,22 @@ class PageSizeTestCase(TestCase):
     def test_height_letter(self):
         package = OpcPackage('test_files/numbering/docx/requete.docx')
         section = package.sections[-1]
-        page_size = section.page_size
-        self.assertEqual(11, page_size.height)
+        self.assertEqual(11, section.height.inches)
 
     def test_height_legal_landscape(self):
         package = OpcPackage('test_files/sections/docx/legal_landscape.docx')
         section = package.sections[-1]
-        page_size = section.page_size
-        self.assertEqual(8.5, page_size.height)
+        self.assertEqual(8.5, section.height.inches)
 
     def test_width_letter(self):
         package = OpcPackage('test_files/numbering/docx/requete.docx')
         section = package.sections[-1]
-        page_size = section.page_size
-        self.assertEqual(8.5, page_size.width)
+        self.assertEqual(8.5, section.width.inches)
 
     def test_width_legal_landscape(self):
         package = OpcPackage('test_files/sections/docx/legal_landscape.docx')
         section = package.sections[-1]
-        page_size = section.page_size
-        self.assertEqual(14, page_size.width)
+        self.assertEqual(14, section.width.inches)
 
     def test_orientation_portrait(self):
         package = OpcPackage('test_files/numbering/docx/requete.docx')
@@ -57,25 +53,25 @@ class PageSizeTestCase(TestCase):
     def test_margin_top_1in(self):
         package = OpcPackage('test_files/numbering/docx/requete.docx')
         section = package.sections[-1]
-        margin = section.margins.top
+        margin = section.margin_top.inches
         self.assertEqual(1, margin)
 
     def test_margin_right_1in(self):
         package = OpcPackage('test_files/numbering/docx/requete.docx')
         section = package.sections[-1]
-        margin = section.margins.right
+        margin = section.margin_right.inches
         self.assertEqual(1, margin)
 
     def test_margin_bottom_1in(self):
         package = OpcPackage('test_files/numbering/docx/requete.docx')
         section = package.sections[-1]
-        margin = section.margins.bottom
+        margin = section.margin_bottom.inches
         self.assertEqual(1, margin)
 
     def test_margin_left_1in(self):
         package = OpcPackage('test_files/numbering/docx/requete.docx')
         section = package.sections[-1]
-        margin = section.margins.left
+        margin = section.margin_left.inches
         self.assertEqual(1, margin)
 
     def test_css_print_letter(self):

@@ -67,13 +67,10 @@ class CSSColor:
         :return: CSSColor instance
         """
         shade = self.hex2int(hex_percentage) / 255
-        print('applying shade:', shade, 'on', self)
-        print('before:', self.red, self.green, self.blue)
         def transform(x): return int(shade * x)
         self.red = transform(self.red)
         self.green = transform(self.green)
         self.blue = transform(self.blue)
-        print('After:', self.red, self.green, self.blue)
 
     def apply_rgb_tint(self, hex_percentage):
         """
@@ -86,13 +83,10 @@ class CSSColor:
         by 255 to get a percentage.
         """
         tint = self.hex2int(hex_percentage) / 255
-        print('applying tint:', tint)
-        print('before:', self.red, self.green, self.blue)
         def transform(x): return int((1 - tint) * (255 - x) + x)
         self.red = transform(self.red)
         self.green = transform(self.green)
         self.blue = transform(self.blue)
-        print('After:', self.red, self.green, self.blue)
 
     @classmethod
     def from_hsl(cls, h, s, l):
@@ -114,3 +108,84 @@ class CSSColor:
 
     def __str__(self):
         return '%02x%02x%02x' % (self.red, self.green, self.blue)
+
+
+class CssUnit(int):
+    _EMUS_PER_INCH = 914400
+    _EMUS_PER_CM = 360000
+    _EMUS_PER_MM = 36000
+    _EMUS_PER_PT = 12700
+    _EMUS_PER_TWIP = 635
+    _EMUS_PER_PX = _EMUS_PER_INCH / 96
+    _EMUS_PER_PC = _EMUS_PER_PT * 12
+
+    def __new__(cls, value, unit='emu'):
+        return int.__new__(cls, cls.to_emu(value, unit))
+
+    @classmethod
+    def to_emu(cls, value, unit):
+        if unit == 'px':
+            return float(value) * float(cls._EMUS_PER_INCH) / 96
+        elif unit == 'pc':
+            return float(value) * float(cls._EMUS_PER_PT) * 12
+        elif unit == 'pt':
+            return float(value) * float(cls._EMUS_PER_PT)
+        elif unit == 'mm':
+            return float(value) * float(cls._EMUS_PER_MM)
+        elif unit == 'cm':
+            return float(value) * float(cls._EMUS_PER_CM)
+        elif unit == 'in':
+            return float(value) * float(cls._EMUS_PER_INCH)
+        elif unit == 'twip':
+            return float(value) * float(cls._EMUS_PER_TWIP)
+        elif unit == 'emu':
+            return value
+        else:
+            raise ValueError(
+                f'{unit} is not a valid unit. '
+                'Choices are: px, pc, pt, mm, cm, in, twip, emu'
+            )
+
+    @property
+    def px(self):
+        return self / float(self._EMUS_PER_PX)
+
+    @property
+    def pc(self):
+        return self / float(self._EMUS_PER_PC)
+
+    @property
+    def pt(self):
+        return self / float(self._EMUS_PER_PT)
+
+    @property
+    def cm(self):
+        return self / float(self._EMUS_PER_CM)
+
+    @property
+    def mm(self):
+        return self / float(self._EMUS_PER_MM)
+
+    @property
+    def inches(self):
+        return self / float(self._EMUS_PER_INCH)
+
+    @property
+    def twips(self):
+        return int(round(self / float(self._EMUS_PER_TWIP)))
+
+    def to(self, unit):
+        if unit == 'px':
+            return self.px
+        elif unit == 'pc':
+            return self.pc
+        elif unit == 'pt':
+            return self.pt
+        elif unit == 'mm':
+            return self.mm
+        elif unit == 'cm':
+            return self.cm
+        elif unit == 'in':
+            return self.inches
+        else:
+            return self
