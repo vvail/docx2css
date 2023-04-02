@@ -1,0 +1,8 @@
+<w:style xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+         w:type="table" w:customStyle="1" w:styleId="table-cell-width-33pct">
+    <w:name w:val="table-cell-width-33pct"/>
+    <w:basedOn w:val="TableNormal"/>
+    <w:tcPr>
+        <w:tcW w:type="pct" w:w="1650"/>
+    </w:tcPr>
+</w:style>

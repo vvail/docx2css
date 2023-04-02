@@ -1,0 +1,14 @@
+table.table-banded-cols-border-inside-vertical {
+    border-collapse: collapse;
+    border-style: hidden;
+}
+table.table-banded-cols-border-inside-vertical tr td:nth-child(4n+1), table.table-banded-cols-border-inside-vertical tr td:nth-child(4n+2) {
+    background-color: #FF0;
+}
+table.table-banded-cols-border-inside-vertical tr td:nth-child(4n+1) + td:nth-child(4n+2) {
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+}
+table.table-banded-cols-border-inside-vertical tr td:nth-child(4n+3), table.table-banded-cols-border-inside-vertical tr td:nth-child(4n+4) {
+    background-color: #00B050;
+}

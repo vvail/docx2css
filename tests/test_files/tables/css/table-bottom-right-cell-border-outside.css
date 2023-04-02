@@ -1,0 +1,14 @@
+table.table-bottom-right-cell-border-outside {
+    border-collapse: collapse;
+}
+table.table-bottom-right-cell-border-outside tr:last-of-type td:last-of-type {
+    background-color: #FF0;
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+    border-right-style: solid;
+    border-right-width: 0.5pt;
+    border-top-style: solid;
+    border-top-width: 0.5pt;
+}

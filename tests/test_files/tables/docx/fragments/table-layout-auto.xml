@@ -1,0 +1,8 @@
+<w:style xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+         w:type="table" w:customStyle="1" w:styleId="table-layout-auto">
+    <w:name w:val="table-layout-auto"/>
+    <w:basedOn w:val="TableNormal"/>
+    <w:tblPr>
+        <w:tblLayout w:type="autofit"/>
+    </w:tblPr>
+</w:style>

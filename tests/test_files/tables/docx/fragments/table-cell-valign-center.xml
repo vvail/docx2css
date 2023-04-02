@@ -1,0 +1,8 @@
+<w:style xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+         w:type="table" w:customStyle="1" w:styleId="table-cell-valign-center">
+    <w:name w:val="table-cell-valign-center"/>
+    <w:basedOn w:val="TableNormal"/>
+    <w:tcPr>
+        <w:vAlign w:val="center"/>
+    </w:tcPr>
+</w:style>

@@ -1,0 +1,10 @@
+table.table-border-inside-vertical-05pt {
+    border-collapse: collapse;
+    border-style: hidden;
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+}
+table.table-border-inside-vertical-05pt td + td {
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+}

@@ -1,0 +1,8 @@
+table.cell-border-inside-horizontal-05pt {
+    border-collapse: collapse;
+    border-style: hidden;
+}
+table.cell-border-inside-horizontal-05pt td {
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+}

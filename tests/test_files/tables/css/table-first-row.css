@@ -1,0 +1,7 @@
+table.table-first-row tr:first-of-type td {
+    font-style: italic;
+    white-space: nowrap;
+}
+table.table-first-row tr:first-of-type {
+    break-inside: auto;
+}

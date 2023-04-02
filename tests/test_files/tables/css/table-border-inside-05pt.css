@@ -1,0 +1,12 @@
+table.table-border-inside-05pt {
+    border-collapse: collapse;
+    border-style: hidden;
+}
+table.table-border-inside-05pt td {
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+}
+table.table-border-inside-05pt td + td {
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+}

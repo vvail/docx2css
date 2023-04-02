@@ -1,0 +1,7 @@
+table.table-banded-rows-wrap-text tr:nth-child(4n+3) td, table.table-banded-rows-wrap-text tr:nth-child(4n+4) td {
+    font-weight: bold;
+    white-space: normal;
+}
+table.table-banded-rows-wrap-text tr:nth-child(4n+3), table.table-banded-rows-wrap-text tr:nth-child(4n+4) {
+    height: 1in;
+}

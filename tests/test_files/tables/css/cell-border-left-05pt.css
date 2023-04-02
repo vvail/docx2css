@@ -1,0 +1,7 @@
+table.cell-border-left-05pt {
+    border-collapse: collapse;
+}
+table.cell-border-left-05pt td {
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+}

@@ -6,11 +6,34 @@ from .constants import NAMESPACES
 class DocxStyleLookup(etree.PythonElementClassLookup):
 
     def lookup(self, doc, element):
-        from .styles import STYLE_MAPPING
-        tag = f"{{{NAMESPACES['w']}}}style"
-        type_name = f"{{{NAMESPACES['w']}}}type"
-        if element.tag == tag:
-            return STYLE_MAPPING.get(element.get(type_name), None)
+        from . import styles, tables
+        style_mapping = {
+            'character': styles.CharacterStyle,
+            'numbering': styles.NumberingStyle,
+            'paragraph': styles.ParagraphStyle,
+            'table': styles.DocxTableStyle,
+        }
+        style_tag = f"{{{NAMESPACES['w']}}}style"
+        style_type_name = f"{{{NAMESPACES['w']}}}type"
+        bottom_tag = f"{{{NAMESPACES['w']}}}bottom"
+        left_tag = f"{{{NAMESPACES['w']}}}left"
+        right_tag = f"{{{NAMESPACES['w']}}}right"
+        top_tag = f"{{{NAMESPACES['w']}}}top"
+        if element.tag == style_tag:
+            return style_mapping.get(element.get(style_type_name), None)
+        # <w:bottom> can be a border or a table cell margin. The latter
+        # has a 'type' attribute while the former does not. The presence
+        # of this attribute is used to discriminate between borders and
+        # cell margins. If the 'type' attribute is not found, the lookup
+        # scheme will fallback on the annotations
+        elif element.tag == bottom_tag and element.get(w('type')) is not None:
+            return tables.TableCellMarginBottom
+        elif element.tag == left_tag and element.get(w('type')) is not None:
+            return tables.TableCellMarginLeft
+        elif element.tag == right_tag and element.get(w('type')) is not None:
+            return tables.TableCellMarginRight
+        elif element.tag == top_tag and element.get(w('type')) is not None:
+            return tables.TableCellMarginTop
 
 
 lookup = etree.ElementNamespaceClassLookup()

@@ -1,5 +1,22 @@
+from collections import namedtuple
 import colorsys
 import textwrap
+from dataclasses import dataclass, fields
+
+KeyValueProperty = namedtuple('KeyValueProperty', ['name', 'value'])
+
+
+@dataclass
+class PropertyContainer:
+
+    excluded_keys = ('name', 'id', 'parent', 'parent_id', 'children', 'type')
+
+    def properties(self):
+        def accept(f):
+            result = f.name not in self.excluded_keys and getattr(self, f.name) is not None
+            return result
+        return (KeyValueProperty(f.name, getattr(self, f.name))
+                for f in fields(self) if accept(f))
 
 
 class CSSColor:
@@ -189,3 +206,19 @@ class CssUnit(int):
             return self.inches
         else:
             return self
+
+
+class AutoLength(CssUnit):
+
+    def __new__(cls):
+        return int.__new__(cls, 0)
+
+
+class Percentage(CssUnit):
+
+    def __new__(cls, value):
+        return int.__new__(cls, value * 100)
+
+    @property
+    def pct(self):
+        return self / 100

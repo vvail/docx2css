@@ -26,3 +26,37 @@ p {
     font-family: "Lucida Sans Typewriter";
     font-weight: bold;
 }
+table {
+    margin-left: 0;
+}
+table td {
+    padding-bottom: 0;
+    padding-left: 5.4pt;
+    padding-right: 5.4pt;
+    padding-top: 0;
+}
+table.TableGrid {
+    border-collapse: collapse;
+    border-style: hidden;
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+    border-right-style: solid;
+    border-right-width: 0.5pt;
+    border-top-style: solid;
+    border-top-width: 0.5pt;
+    margin-left: 0;
+}
+table.TableGrid td {
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+    padding-bottom: 0;
+    padding-left: 0.7pt;
+    padding-right: 0.7pt;
+    padding-top: 0;
+}
+table.TableGrid td + td {
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+}

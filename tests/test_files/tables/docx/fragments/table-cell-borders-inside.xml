@@ -1,0 +1,11 @@
+<w:style xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+         w:type="table" w:customStyle="1" w:styleId="table-cell-borders-inside">
+    <w:name w:val="table-cell-borders-inside"/>
+    <w:basedOn w:val="TableNormal"/>
+    <w:tcPr>
+        <w:tcBorders>
+            <w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+            <w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+        </w:tcBorders>
+    </w:tcPr>
+</w:style>

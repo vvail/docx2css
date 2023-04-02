@@ -78,6 +78,15 @@ h3 {
     margin-left: 0.5in;
     counter-reset: counter1-L3;
 }
+table {
+    margin-left: 0;
+}
+table td {
+    padding-bottom: 0;
+    padding-left: 5.4pt;
+    padding-right: 5.4pt;
+    padding-top: 0;
+}
 span.Heading1Char {
     font-family: Arial, sans-serif;
     font-weight: bold;
@@ -206,6 +215,26 @@ p.no-space, p.no-space-center-bold {
 p.no-space-center-bold {
     text-align: center;
     font-weight: bold;
+}
+table.TableGrid {
+    border-collapse: collapse;
+    border-style: hidden;
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+    border-right-style: solid;
+    border-right-width: 0.5pt;
+    border-top-style: solid;
+    border-top-width: 0.5pt;
+}
+table.TableGrid td {
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+}
+table.TableGrid td + td {
+    border-left-style: solid;
+    border-left-width: 0.5pt;
 }
 p.retrait {
     margin-left: 0.25in;

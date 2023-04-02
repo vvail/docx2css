@@ -1,0 +1,8 @@
+<w:style xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+         w:type="table" w:customStyle="1" w:styleId="table-cell-colspan-2">
+    <w:name w:val="table-cell-colspan-2"/>
+    <w:basedOn w:val="TableNormal"/>
+    <w:tcPr>
+        <w:gridSpan w:val="2" />
+    </w:tcPr>
+</w:style>

@@ -1,0 +1,9 @@
+table.table-first-col tr td:first-of-type {
+    margin-left: auto;
+    border-spacing: 0.35pt;
+    font-style: italic;
+}
+table.table-first-col tr:first-of-type {
+    margin-left: auto;
+    border-spacing: 0.35pt;
+}

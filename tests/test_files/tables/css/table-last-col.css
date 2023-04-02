@@ -1,0 +1,3 @@
+table.table-last-col tr td:last-of-type {
+    font-style: italic;
+}

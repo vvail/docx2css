@@ -1,0 +1,13 @@
+table.table-banded-cols-border-left {
+    border-collapse: collapse;
+}
+table.table-banded-cols-border-left tr td:nth-child(4n+1), table.table-banded-cols-border-left tr td:nth-child(4n+2) {
+    background-color: #FF0;
+}
+table.table-banded-cols-border-left tr td:nth-child(4n+3), table.table-banded-cols-border-left tr td:nth-child(4n+4) {
+    background-color: #00B050;
+}
+table.table-banded-cols-border-left tr td:nth-child(4n+3) {
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+}

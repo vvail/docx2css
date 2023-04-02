@@ -1,0 +1,7 @@
+table.table-banded-rows-valign-center tr:nth-child(2n+1) td {
+    font-weight: bold;
+    vertical-align: middle;
+}
+table.table-banded-rows-valign-center tr:nth-child(2n+1) {
+    height: 1in;
+}

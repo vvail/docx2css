@@ -1,0 +1,18 @@
+table.table-first-row-border-outside {
+    border-collapse: collapse;
+}
+table.table-first-row-border-outside tr:first-of-type td {
+    background-color: #FF0;
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+    border-top-style: solid;
+    border-top-width: 0.5pt;
+}
+table.table-first-row-border-outside tr:first-of-type td:first-of-type {
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+}
+table.table-first-row-border-outside tr:first-of-type td:last-of-type {
+    border-right-style: solid;
+    border-right-width: 0.5pt;
+}

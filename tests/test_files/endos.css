@@ -55,6 +55,15 @@ h3 {
     margin-left: 0.5in;
     font-weight: bold;
 }
+table {
+    margin-left: 0;
+}
+table td {
+    padding-bottom: 0;
+    padding-left: 5.4pt;
+    padding-right: 5.4pt;
+    padding-top: 0;
+}
 p.align-right {
     text-align: end;
 }

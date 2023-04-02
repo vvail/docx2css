@@ -5,12 +5,13 @@ from collections.abc import Mapping
 import cssutils
 from lxml import etree
 
+from docx2css.api import Border
 from docx2css.ooxml import w, wordml
 from docx2css.ooxml.constants import CONTENT_TYPE, NAMESPACES
 from docx2css.ooxml.simple_types import (
     ST_Border, ST_FontFamily, ST_Underline, ST_Jc
 )
-from docx2css.utils import CSSColor
+from docx2css.utils import CSSColor, CssUnit
 
 
 class Styles(Mapping):
@@ -285,19 +286,15 @@ class NumberingStyle(DocxStyle):
         return []
 
 
-class TableStyle(DocxStyle):
+class DocxTableStyle(DocxStyle):
+    css_selector_prefix = 'table'
 
     def css_style_rules(self):
-        # TODO: Handle table styles
-        return []
-
-
-STYLE_MAPPING = {
-    'character': CharacterStyle,
-    'numbering': NumberingStyle,
-    'paragraph': ParagraphStyle,
-    'table': TableStyle,
-}
+        from docx2css.css.serializers import CssTableSerializer
+        from docx2css.ooxml.tables import parse_docx_table_style
+        api_table = parse_docx_table_style(self)
+        serializer = CssTableSerializer(api_table)
+        return serializer.css_style_rules()
 
 
 @wordml('docDefaults')
@@ -314,6 +311,19 @@ class DocDefaults(etree.ElementBase):
         for prop in self.css_properties():
             prop.set_css_style(css_style, package)
         return css_style
+
+
+class DocxPropertyAdapter(etree.ElementBase, ABC):
+
+    @property
+    @abstractmethod
+    def prop_name(self):
+        pass
+
+    @property
+    @abstractmethod
+    def prop_value(self):
+        pass
 
 
 class CssPropertyAdapter(etree.ElementBase, ABC):
@@ -427,56 +437,125 @@ class AllCapsProperty(ToggleProperty):
 
 
 @wordml('b')
-class BoldProperty(ToggleProperty):
+class BoldProperty(DocxPropertyAdapter, ToggleProperty):
+    prop_name = 'bold'
     css_name = 'font-weight'
     css_value = 'bold'
     css_none_value = 'normal'
 
+    @property
+    def prop_value(self):
+        return self.get_boolean('val')
+
 
 @wordml('bdr')
-class BorderProperty(ColorPropertyAdapter):
+class BorderProperty(DocxPropertyAdapter, ColorPropertyAdapter):
+    prop_name = 'border'
     color_attribute = 'color'
     direction = ''  # Direction (top, left, bottom, right) of the border
+
+    @property
+    def prop_value(self):
+        return Border(
+            color=self.color,
+            padding=self.padding,
+            shadow=self.shadow,
+            style=self.style,
+            width=self.width
+        )
+
+    @property
+    def color(self):
+        """Get the optional color of the border taking in consideration
+        that the color can be defined with different attributes such as
+        'color', 'themeColor', 'themeTint' or 'themeShade'
+        Returns a #Hex code, or None if the color is undefined or if its
+        value is set to 'auto'
+        """
+        color = self.get_color()
+        return f"#{color}" if color and color != 'auto' else None
+
+    @property
+    def padding(self):
+        """Get the padding that shall be used to place this border on
+        the parent object
+        """
+        space = self.get(w('space'))
+        if space is None:
+            return None
+        return CssUnit(int(space), 'pt')
+
+    @property
+    def shadow(self):
+        """Specifies whether this border should be modified to create
+        the appearance of a shadow."""
+        return self.get_boolean('shadow', None)
+
+    @property
+    def style(self) -> str:
+        """Get the line style as a string.
+
+        Possible values:
+            * none;
+            * dotted;
+            * dashed;
+            * solid;
+            * double;
+            * groove;
+            * ridge;
+            * inset;
+            * outset;
+        """
+        value = self.get_string('val')
+        return ST_Border.css_value(value)
+
+    @property
+    def width(self):
+        """Get the width of the border
+
+        :returns: CssUnit
+        """
+        width = self.get_string('sz')
+        # The 'sz' attribute is in 8th of a pt.
+        if width is None:
+            return None
+        return CssUnit(int(width) / 8, 'pt')
 
     def css_border_color(self):
         """Get the optional color atttribute of the border.
         Returns a #Hex code, or an empty string if the color is undefined
         or if its value is set to 'auto'
         """
-        color = self.get_string('color')
-        return f"#{color}" if color and color != 'auto' else ''
+        color = self.color
+        return color if color is not None else ''
 
     def css_border_shadow(self):
         """Get the value of the box-shadow if the attribute shadow is set to
         true in the docx.
         The color is never defined because Word seem to make all shadows black
         """
-        shadow = self.get_boolean('shadow', None)
         width = self.css_border_width()
-        return f'{width} {width}' if width and shadow else ''
+        return f'{width} {width}' if width and self.shadow else ''
 
     def css_border_style(self):
         """Get the CSS value for this element.
         The 'val' attribute is required and will be always be present.
         The border type will be translated using an ST class
         """
-        value = self.get_string('val')
-        return ST_Border.css_value(value)
+        return self.style
 
     def css_border_width(self):
         """Get the CSS border width. The 'sz' attribute is in 8th of a pt.
         """
-        width = self.get_string('sz')
-        return f'{int(width) / 8:.2f}pt' if width is not None else ''
+        width = self.width
+        return f'{width.pt:.2f}pt' if width is not None else ''
 
     def css_padding(self):
         """
         Add the padding corresponding to space attribute
         """
-        space = self.get(w('space'))
-        if space is not None:
-            padding = int(space)
-            return f'{padding}pt' if padding else ''
+        padding = self.padding
+        return f'{padding.pt}pt' if padding else ''
 
     def set_css_style(self, style_rule, opc_package=None):
         # The following attributes are not supported:
@@ -498,21 +577,25 @@ class BorderProperty(ColorPropertyAdapter):
 
 @wordml('bottom')
 class BorderBottomProperty(BorderProperty):
+    prop_name = 'border_bottom'
     direction = 'bottom'
 
 
 @wordml('left')
 class BorderLeftProperty(BorderProperty):
+    prop_name = 'border_left'
     direction = 'left'
 
 
 @wordml('right')
 class BorderRightProperty(BorderProperty):
+    prop_name = 'border_right'
     direction = 'right'
 
 
 @wordml('top')
 class BorderTopProperty(BorderProperty):
+    prop_name = 'border_top'
     direction = 'top'
 
 
@@ -721,18 +804,29 @@ class IndentProperty(CssPropertyAdapter):
 
 
 @wordml('i')
-class ItalicProperty(ToggleProperty):
+class ItalicProperty(DocxPropertyAdapter, ToggleProperty):
+    prop_name = 'italics'
     css_name = 'font-style'
     css_value = 'italic'
     css_none_value = 'normal'
 
+    @property
+    def prop_value(self):
+        return self.get_boolean('val')
+
 
 @wordml('jc')
-class JustificationProperty(CssPropertyAdapter):
+class JustificationProperty(DocxPropertyAdapter, CssPropertyAdapter):
+
+    prop_name = 'alignment'
+
+    @property
+    def prop_value(self):
+        attr_value = self.get(w('val'))
+        return ST_Jc.css_value(attr_value)
 
     def set_css_style(self, style_rule, opc_package=None):
-        value = self.get(w('val'))
-        style_rule['text-align'] = ST_Jc.css_value(value)
+        style_rule['text-align'] = self.prop_value
 
 
 @wordml('keepLines')
@@ -805,13 +899,18 @@ class PositionProperty(ComplexToggleProperty):
 
 
 @wordml('shd')
-class ShadingProperty(ColorPropertyAdapter):
+class ShadingProperty(DocxPropertyAdapter, ColorPropertyAdapter):
+    prop_name = 'background_color'
     css_name = 'background-color'
     css_none_value = 'unset'
     color_attribute = 'fill'
     theme_color_attribute = 'themeFill'
     theme_shade_attribute = 'themeFillShade'
     theme_tint_attribute = 'themeFillTint'
+
+    @property
+    def prop_value(self):
+        return self.get_color()
 
     def set_css_style(self, style_rule, opc_package=None):
         super().set_css_style(style_rule, opc_package)

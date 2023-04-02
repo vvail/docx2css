@@ -1,0 +1,14 @@
+table.table-top-left-cell-border-outside {
+    border-collapse: collapse;
+}
+table.table-top-left-cell-border-outside tr:first-of-type td:first-of-type {
+    background-color: #FF0;
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+    border-right-style: solid;
+    border-right-width: 0.5pt;
+    border-top-style: solid;
+    border-top-width: 0.5pt;
+}

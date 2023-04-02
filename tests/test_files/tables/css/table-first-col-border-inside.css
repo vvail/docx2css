@@ -1,0 +1,11 @@
+table.table-first-col-border-inside {
+    border-collapse: collapse;
+    border-style: hidden;
+}
+table.table-first-col-border-inside tr td:first-of-type {
+    background-color: #FF0;
+}
+table.table-first-col-border-inside tr:not(:last-of-type) td:first-of-type {
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+}

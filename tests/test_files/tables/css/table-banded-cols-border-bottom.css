@@ -1,0 +1,7 @@
+table.table-banded-cols-border-bottom {
+    border-collapse: collapse;
+}
+table.table-banded-cols-border-bottom tr:last-of-type td:nth-child(4n+1), table.table-banded-cols-border-bottom tr:last-of-type td:nth-child(4n+2) {
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+}
