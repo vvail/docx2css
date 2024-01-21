@@ -1,7 +1,7 @@
 p.hangingspace:before {
     content: counter(hanginglist-L1, decimal) ")" "\00A0";
     counter-increment: hanginglist-L1;
-    text-align: left;
+    text-align: start;
 }
 p.hangingspace {
     margin-left: 1in;

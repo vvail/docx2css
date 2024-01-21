@@ -2,7 +2,7 @@ p.firstlinespace:before {
     text-indent: 0.5in;
     content: counter(mylist-L1, lower-alpha) ")" "\00A0";
     counter-increment: mylist-L1;
-    text-align: left;
+    text-align: start;
     display: inline-block;
 }
 p.firstlinespace {

@@ -1,3 +1,7 @@
+table.table-top-right-cell {
+    line-height: 1;
+    margin-bottom: 0;
+}
 table.table-top-right-cell tr:first-of-type td:last-of-type {
     font-style: italic;
 }

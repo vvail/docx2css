@@ -3,13 +3,7 @@
     margin: 1in 1in 1in 1in;
     }
 @media screen {
-    html {
-        background-color: gainsboro;
-    }
     body {
-        background-color: white;
-        border: 1px darkgray solid;
-        box-shadow: 1rem 0.5rem 1rem rgba(0, 0, 0, 0.15);
         max-width: 6.5in;
         margin: 1em auto;
         padding: 1in 1in 1in 1in;
@@ -17,45 +11,200 @@
 }
 body {
     font-family: "Times New Roman", PMingLiU, 新細明體, serif;
+    counter-reset: allegations-L0 allegations-L1 allegations-L2 allegations-L3 counter2-L0 resolutions-L0 resolutions-L1 resolutions-L2;
 }
 p, h1, h2, h3 {
-    text-align: justify;
     font-size: 12pt;
+    text-align: justify;
 }
 h1:before {
-    text-indent: 0;
+    text-transform: none;
     font-weight: normal;
     font-style: normal;
-    text-transform: none;
+    break-after: avoid;
+    margin-bottom: 24pt;
+    margin-top: 5pt;
+    text-align: start;
     counter-increment: allegations-L0;
-    text-align: left;
+    text-indent: 0;
     margin-right: 0;
     display: inline-block;
 }
 h1 {
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    font-kerning: normal;
+    font-size: 16pt;
     break-after: avoid;
     margin-bottom: 24pt;
     margin-top: 5pt;
     text-align: center;
-    font-family: Arial, sans-serif;
-    font-weight: bold;
-    font-kerning: normal;
-    font-size: 16pt;
     margin-left: 0;
     counter-reset: allegations-L1;
 }
 h2 {
+    font-weight: bold;
     break-after: avoid;
     margin-bottom: 5pt;
     margin-top: 18pt;
-    font-weight: bold;
     font-variant-caps: small-caps;
 }
 h3 {
-    break-after: avoid;
-    margin-top: 18pt;
-    margin-left: 0.5in;
     font-weight: bold;
+    break-after: avoid;
+    margin-left: 0.5in;
+    margin-top: 18pt;
+}
+p.align-right {
+    text-align: end;
+}
+p.allegations-L1:before {
+    font-weight: normal;
+    font-style: normal;
+    content: counter(allegations-L1, decimal) ".";
+    counter-increment: allegations-L1;
+    text-align: start;
+    text-indent: -0.5in;
+    display: inline-block;
+}
+p.allegations-L1 {
+    margin-left: 0.5in;
+    counter-reset: allegations-L2;
+}
+p.allegations-L2:before {
+    font-weight: normal;
+    font-style: normal;
+    content: counter(allegations-L1, decimal) "." counter(allegations-L2, decimal) ".";
+    counter-increment: allegations-L2;
+    text-align: start;
+    text-indent: -0.5in;
+    display: inline-block;
+}
+p.allegations-L2 {
+    margin-left: 1in;
+    counter-reset: allegations-L3;
+}
+p.allegations-L3:before {
+    content: counter(allegations-L1, decimal) "." counter(allegations-L2, decimal) "." counter(allegations-L3, decimal) ".";
+    counter-increment: allegations-L3;
+    text-align: start;
+    text-indent: -0.5in;
+    display: inline-block;
+}
+p.allegations-L3 {
+    margin-left: 1.5in;
+    counter-reset: allegations-L4;
+}
+p.center {
+    text-align: center;
+}
+p.citation {
+    font-size: 11pt;
+    font-style: italic;
+    margin-left: 0.5in;
+    margin-right: 0.5in;
+}
+p.conclusions {
+    margin-left: 0.5in;
+}
+p.enum:before {
+    content: counter(counter2-L0, lower-alpha) ")";
+    counter-increment: counter2-L0;
+    text-align: start;
+    text-indent: -0.2in;
+    display: inline-block;
+}
+p.enum {
+    margin-left: 1in;
+    counter-reset: counter2-L1;
+}
+p.float {
+    margin-left: 0.5in;
+    text-indent: -0.5in;
+}
+p.ligne-15 {
+    border-bottom-style: solid;
+    border-bottom-width: 0.75pt;
+    font-size: 1pt;
+    margin-top: 11pt;
+}
+p.no-space, p.no-space-center-bold {
+    margin-bottom: 0;
+    margin-top: 0;
+}
+p.no-space-center-bold {
+    font-weight: bold;
+    text-align: center;
+}
+p.resolution-L1:before {
+    text-transform: none;
+    font-weight: normal;
+    font-family: Symbol, serif;
+    font-style: normal;
+    content: "\f0b7";
+    counter-increment: resolutions-L0;
+    text-align: start;
+    text-indent: -0.3in;
+    display: inline-block;
+}
+p.resolution-L1 {
+    margin-left: 0.3in;
+    counter-reset: resolutions-L1;
+}
+p.resolution-L2:before {
+    font-weight: normal;
+    font-family: "Courier New", monospace;
+    font-style: normal;
+    content: "\006f";
+    counter-increment: resolutions-L1;
+    text-align: start;
+    text-indent: -0.3in;
+    display: inline-block;
+}
+p.resolution-L2 {
+    margin-left: 0.6in;
+    counter-reset: resolutions-L2;
+}
+p.resolution-L3:before {
+    font-weight: normal;
+    font-family: Wingdings;
+    font-style: normal;
+    content: "\f0a7";
+    counter-increment: resolutions-L2;
+    text-align: start;
+    text-indent: -0.3in;
+    display: inline-block;
+}
+p.resolution-L3 {
+    margin-left: 0.9in;
+    counter-reset: resolutions-L3;
+}
+p.signature-date, p.signature-ligne, p.signature-nom {
+    break-after: avoid;
+    margin-bottom: 5pt;
+    margin-top: 18pt;
+}
+p.signature-ligne {
+    border-bottom-style: solid;
+    border-bottom-width: 0.75pt;
+    padding-bottom: 1pt;
+    font-family: "Monotype Corsiva", cursive;
+    font-size: 16pt;
+    margin-bottom: 0;
+}
+p.signature-nom {
+    margin-bottom: 0;
+    margin-top: 0;
+}
+p.Header {
+    font-size: 10pt;
+    margin-bottom: 0;
+    margin-top: 0;
+}
+p.Footer {
+    font-size: 10pt;
+    margin-bottom: 0;
+    margin-top: 0;
 }
 table {
     margin-left: 0;
@@ -77,6 +226,9 @@ table.TableGrid {
     border-right-width: 0.5pt;
     border-top-style: solid;
     border-top-width: 0.5pt;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
+    text-align: justify;
 }
 table.TableGrid td {
     border-bottom-style: solid;
@@ -85,155 +237,4 @@ table.TableGrid td {
 table.TableGrid td + td {
     border-left-style: solid;
     border-left-width: 0.5pt;
-}
-p.align-right {
-    text-align: end;
-}
-p.allegations-L1:before {
-    text-indent: -0.5in;
-    font-weight: normal;
-    font-style: normal;
-    content: counter(allegations-L1, decimal) ".";
-    counter-increment: allegations-L1;
-    text-align: left;
-    display: inline-block;
-}
-p.allegations-L1 {
-    margin-left: 0.5in;
-    counter-reset: allegations-L2;
-}
-p.allegations-L2:before {
-    text-indent: -0.5in;
-    font-weight: normal;
-    font-style: normal;
-    content: counter(allegations-L1, decimal) "." counter(allegations-L2, decimal) ".";
-    counter-increment: allegations-L2;
-    text-align: left;
-    display: inline-block;
-}
-p.allegations-L2 {
-    margin-left: 1in;
-    counter-reset: allegations-L3;
-}
-p.allegations-L3:before {
-    text-indent: -0.5in;
-    content: counter(allegations-L1, decimal) "." counter(allegations-L2, decimal) "." counter(allegations-L3, decimal) ".";
-    counter-increment: allegations-L3;
-    text-align: left;
-    display: inline-block;
-}
-p.allegations-L3 {
-    margin-left: 1.5in;
-    counter-reset: allegations-L4;
-}
-p.center {
-    text-align: center;
-}
-p.citation {
-    margin-left: 0.5in;
-    margin-right: 0.5in;
-    font-style: italic;
-    font-size: 11pt;
-}
-p.conclusions {
-    margin-left: 0.5in;
-}
-p.enum:before {
-    text-indent: -0.2in;
-    content: counter(counter2-L0, lower-alpha) ")";
-    counter-increment: counter2-L0;
-    text-align: left;
-    display: inline-block;
-}
-p.enum {
-    margin-left: 1in;
-    counter-reset: counter2-L1;
-}
-p.float {
-    margin-left: 0.5in;
-    text-indent: -0.5in;
-}
-p.ligne-15 {
-    border-bottom-style: solid;
-    border-bottom-width: 0.75pt;
-    margin-top: 11pt;
-    font-size: 1pt;
-}
-p.no-space-center-bold {
-    text-align: center;
-    font-weight: bold;
-}
-p.no-space, p.no-space-center-bold {
-    margin-bottom: 0;
-    margin-top: 0;
-}
-p.resolution-L1:before {
-    text-indent: -0.3in;
-    font-family: Symbol, serif;
-    font-weight: normal;
-    font-style: normal;
-    text-transform: none;
-    content: "\f0b7";
-    counter-increment: resolutions-L0;
-    text-align: left;
-    display: inline-block;
-}
-p.resolution-L1 {
-    margin-left: 0.3in;
-    counter-reset: resolutions-L1;
-}
-p.resolution-L2:before {
-    text-indent: -0.3in;
-    font-family: "Courier New", monospace;
-    font-weight: normal;
-    font-style: normal;
-    content: "\006f";
-    counter-increment: resolutions-L1;
-    text-align: left;
-    display: inline-block;
-}
-p.resolution-L2 {
-    margin-left: 0.6in;
-    counter-reset: resolutions-L2;
-}
-p.resolution-L3:before {
-    text-indent: -0.3in;
-    font-family: Wingdings;
-    font-weight: normal;
-    font-style: normal;
-    content: "\f0a7";
-    counter-increment: resolutions-L2;
-    text-align: left;
-    display: inline-block;
-}
-p.resolution-L3 {
-    margin-left: 0.9in;
-    counter-reset: resolutions-L3;
-}
-p.signature-date, p.signature-ligne, p.signature-nom {
-    break-after: avoid;
-    margin-bottom: 5pt;
-    margin-top: 18pt;
-}
-p.signature-ligne {
-    border-bottom-style: solid;
-    border-bottom-width: 0.75pt;
-    padding-bottom: 1pt;
-    margin-bottom: 0;
-    font-family: "Monotype Corsiva", cursive;
-    font-size: 16pt;
-}
-p.signature-nom {
-    margin-bottom: 0;
-    margin-top: 0;
-}
-p.Header {
-    margin-bottom: 0;
-    margin-top: 0;
-    font-size: 10pt;
-}
-p.Footer {
-    margin-bottom: 0;
-    margin-top: 0;
-    font-size: 10pt;
 }

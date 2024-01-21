@@ -2,7 +2,7 @@ p.firstlinenothing:before {
     text-indent: 0.5in;
     content: counter(mylist-L2, lower-roman) ")";
     counter-increment: mylist-L2;
-    text-align: left;
+    text-align: start;
     display: inline-block;
 }
 p.firstlinenothing {

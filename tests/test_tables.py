@@ -4,21 +4,21 @@ from unittest import TestCase
 import cssutils
 from lxml import etree
 
-from docx2css import OpcPackage
 from docx2css.api import (
     Border,
-    Stylesheet,
     TableCellProperties,
     TableConditionalFormatting,
     TableRowProperties,
     TableStyle,
 )
+from docx2css.stylesheet import Stylesheet
 from docx2css.css.serializers import (
     CssStylesheetSerializer,
     CssTableSerializer,
+    FACTORY
 )
 from docx2css.ooxml import opc_parser
-from docx2css.ooxml.tables import parse_docx_table_style
+from docx2css.ooxml.parsers import DocxParser
 from docx2css.utils import AutoLength, CssUnit, Percentage
 
 
@@ -30,10 +30,10 @@ logging.basicConfig(format='%(filename)s:%(lineno)d %(message)s',
 
 def load_docx_styles(filename):
     styles = {}
-    parser = OpcPackage(filename)
-    stylesheet = parser.styles
+    parser = DocxParser(filename)
+    stylesheet = parser.opc_package.styles
     for style in stylesheet.values():
-        table_style = parse_docx_table_style(style)
+        table_style = parser.parse_docx_table_style(style)
         styles[style.name] = table_style
     return styles
 
@@ -42,7 +42,8 @@ def load_xml_fragment(filename):
     """Load style located in XML fragment instead of docx file"""
     with open(filename) as file:
         xml = etree.fromstring(file.read(), opc_parser)
-        return parse_docx_table_style(xml)
+        parser = DocxParser('')
+        return parser.parse_docx_table_style(xml)
 
 
 class TestTableProperties(TestCase):
@@ -62,32 +63,44 @@ class TestTableProperties(TestCase):
 
     def setUp(self):
         self.styles = {}
+        self.xml_elements = {}
         for file in self.files:
-            parser = OpcPackage(f'{self.docx_files_location}{file}')
-            stylesheet = parser.styles
+            parser = DocxParser(f'{self.docx_files_location}{file}')
+            stylesheet = parser.opc_package.styles
             for style in stylesheet.values():
-                table_style = parse_docx_table_style(style)
+                self.xml_elements[style.name] = style
+                table_style = parser.parse_docx_table_style(style)
                 self.styles[style.name] = table_style
 
     def test_bold(self):
         style = self.styles['table-bold']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertTrue(style.bold)
         self.assertIsNone(style.italics)
 
     def test_alignment_none(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.alignment)
 
     def test_table_alignment_center(self):
         style = self.styles['table-align-center']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual('center', style.alignment)
 
     def test_table_alignment_right(self):
         style = self.styles['table-align-right']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual('end', style.alignment)
 
     def test_table_background_color_none(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.background_color)
 
     def test_table_background_color_red(self):
@@ -99,106 +112,150 @@ class TestTableProperties(TestCase):
 
     def test_table_border_no_borders(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.border_bottom)
 
     def test_table_border_bottom_none(self):
         style = self.styles['table-borders-inside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.border_bottom)
 
     def test_table_border_bottom_05pt(self):
         style = self.styles['table-borders-outside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(0.5, style.border_bottom.width.pt)
         self.assertEqual('solid', style.border_bottom.style)
         self.assertIsNone(style.border_bottom.color)
 
     def test_table_border_inside_horizontal_none(self):
         style = self.styles['table-borders-outside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.border_inside_horizontal)
 
     def test_table_border_inside_horizontal_05pt(self):
         style = self.styles['table-borders-inside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(0.5, style.border_inside_horizontal.width.pt)
         self.assertEqual('solid', style.border_inside_horizontal.style)
         self.assertIsNone(style.border_inside_horizontal.color)
 
     def test_table_border_inside_vertical_none(self):
         style = self.styles['table-borders-outside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.border_inside_vertical)
 
     def test_table_border_inside_vertical_05pt(self):
         style = self.styles['table-borders-inside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(0.5, style.border_inside_vertical.width.pt)
         self.assertEqual('solid', style.border_inside_vertical.style)
         self.assertIsNone(style.border_inside_vertical.color)
 
     def test_table_border_left_none(self):
         style = self.styles['table-borders-inside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.border_left)
 
     def test_table_border_left_05pt(self):
         style = self.styles['table-borders-outside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(0.5, style.border_left.width.pt)
         self.assertEqual('solid', style.border_left.style)
         self.assertIsNone(style.border_left.color)
 
     def test_table_border_right_none(self):
         style = self.styles['table-borders-inside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.border_right)
 
     def test_table_border_right_05pt(self):
         style = self.styles['table-borders-outside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(0.5, style.border_right.width.pt)
         self.assertEqual('solid', style.border_right.style)
         self.assertIsNone(style.border_right.color)
 
     def test_table_border_top_none(self):
         style = self.styles['table-borders-inside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.border_top)
 
     def test_table_border_top_05pt(self):
         style = self.styles['table-borders-outside']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(0.5, style.border_top.width.pt)
         self.assertEqual('solid', style.border_top.style)
         self.assertIsNone(style.border_top.color)
 
     def test_table_cell_margin_bottom_none(self):
         style = self.styles['table-align-right']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.cell_padding_bottom)
 
     def test_table_cell_margin_bottom_0_dxa(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNotNone(style.cell_padding_bottom)
         self.assertEqual(0, style.cell_padding_bottom)
 
     def test_table_cell_margin_left_none(self):
         style = self.styles['table-align-right']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.cell_padding_left)
 
     def test_table_cell_margin_left_108_dxa(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNotNone(style.cell_padding_left)
         self.assertEqual(108, style.cell_padding_left.twips)
 
     def test_table_cell_margin_right_none(self):
         style = self.styles['table-align-right']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.cell_padding_right)
 
     def test_table_cell_margin_right_108_dxa(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNotNone(style.cell_padding_right)
         self.assertEqual(108, style.cell_padding_right.twips)
 
     def test_table_cell_margin_top_none(self):
         style = self.styles['table-align-right']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.cell_padding_top)
 
     def test_table_cell_margin_top_0_dxa(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNotNone(style.cell_padding_top)
         self.assertEqual(0, style.cell_padding_top)
 
     def test_table_cell_margins_01in(self):
         style = self.styles['table-cell-margins-01-inch']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(0.1, style.cell_padding_bottom.inches)
         self.assertEqual(0.1, style.cell_padding_left.inches)
         self.assertEqual(0.1, style.cell_padding_right.inches)
@@ -206,14 +263,20 @@ class TestTableProperties(TestCase):
 
     def test_table_cell_spacing_none(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.cell_spacing)
 
     def test_table_cell_spacing_01in(self):
         style = self.styles['table-cell-spacing-01in']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(0.1, style.cell_spacing.inches)
 
     def test_table_layout_none(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.layout)
 
     def test_table_layout_fixed(self):
@@ -226,34 +289,50 @@ class TestTableProperties(TestCase):
 
     def test_table_left_indent_none(self):
         style = self.styles['table-bold']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.indent)
 
     def test_table_left_indent_0_dxa(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(0, style.indent)
 
     def test_table_left_indent_1in(self):
         style = self.styles['table-leftindent-1in']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(1, style.indent.inches)
 
     def test_table_row_band_size_none(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.row_band_size)
 
     def test_table_row_band_size_2(self):
         style = self.styles['table-band-size-2']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(2, style.row_band_size)
 
     def test_table_col_band_size_none(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.col_band_size)
 
     def test_table_col_band_size_2(self):
         style = self.styles['table-band-size-2']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertEqual(2, style.col_band_size)
 
     def test_table_width_none(self):
         style = self.styles['Normal Table']
+        docx_style = self.xml_elements[style.name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         self.assertIsNone(style.width)
 
     def test_table_width_auto(self):
@@ -277,10 +356,10 @@ class TestRowProperties(TestCase):
 
     def setUp(self):
         self.styles = {}
-        parser = OpcPackage(self.docx_file_location)
-        stylesheet = parser.styles
+        parser = DocxParser(self.docx_file_location)
+        stylesheet = parser.opc_package.styles
         for style in stylesheet.values():
-            table_style = parse_docx_table_style(style)
+            table_style = parser.parse_docx_table_style(style)
             self.styles[style.name] = table_style
 
     def test_alignment_center(self):
@@ -615,7 +694,8 @@ class CssSerializerTestHarness(TestCase):
             expected = css_file.read()
             stylesheet = Stylesheet()
             stylesheet.add_style(style)
-            serializer = CssStylesheetSerializer(stylesheet)
+            serializer = CssStylesheetSerializer(stylesheet, FACTORY)
+            serializer.include_media_rules = False
             result = serializer.serialize()
             print_style_properties(style)
             print('\nResult:')
@@ -1249,7 +1329,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             name=name,
         )
         selector = 'table.table-odd-rows tr:nth-child(2n+1)'
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.odd_row_selector())
 
     def test_even_rows_selector(self):
@@ -1259,7 +1339,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             name=name,
         )
         selector = 'table.even-rows tr:nth-child(2n+2)'
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.even_row_selector())
 
     def test_2_odd_rows_selector(self):
@@ -1271,7 +1351,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
         )
         selector = ('table.odd-rows tr:nth-child(4n+1), '
                     'table.odd-rows tr:nth-child(4n+2)')
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.odd_row_selector())
 
     def test_2_even_rows_selector(self):
@@ -1283,7 +1363,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
         )
         selector = ('table.even-rows tr:nth-child(4n+3), '
                     'table.even-rows tr:nth-child(4n+4)')
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.even_row_selector())
 
     def test_3_odd_rows_selector(self):
@@ -1296,7 +1376,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
         selector = ('table.odd-rows tr:nth-child(6n+1), '
                     'table.odd-rows tr:nth-child(6n+2), '
                     'table.odd-rows tr:nth-child(6n+3)')
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.odd_row_selector())
 
     def test_3_even_rows_selector(self):
@@ -1309,7 +1389,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
         selector = ('table.even-rows tr:nth-child(6n+4), '
                     'table.even-rows tr:nth-child(6n+5), '
                     'table.even-rows tr:nth-child(6n+6)')
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.even_row_selector())
 
     def test_odd_cols_selector(self):
@@ -1319,7 +1399,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             name=name,
         )
         selector = 'table.table-odd-cols tr td:nth-child(2n+1)'
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.odd_column_selector())
 
     def test_even_cols_selector(self):
@@ -1329,7 +1409,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             name=name,
         )
         selector = 'table.even-cols tr td:nth-child(2n+2)'
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.even_column_selector())
 
     def test_2_odd_cols_selector(self):
@@ -1341,7 +1421,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
         )
         selector = ('table.odd-cols tr td:nth-child(4n+1), '
                     'table.odd-cols tr td:nth-child(4n+2)')
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.odd_column_selector())
 
     def test_2_even_cols_selector(self):
@@ -1353,7 +1433,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
         )
         selector = ('table.even-cols tr td:nth-child(4n+3), '
                     'table.even-cols tr td:nth-child(4n+4)')
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.even_column_selector())
 
     def test_3_odd_cols_selector(self):
@@ -1366,7 +1446,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
         selector = ('table.odd-cols tr td:nth-child(6n+1), '
                     'table.odd-cols tr td:nth-child(6n+2), '
                     'table.odd-cols tr td:nth-child(6n+3)')
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.odd_column_selector())
 
     def test_3_even_cols_selector(self):
@@ -1379,7 +1459,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
         selector = ('table.even-cols tr td:nth-child(6n+4), '
                     'table.even-cols tr td:nth-child(6n+5), '
                     'table.even-cols tr td:nth-child(6n+6)')
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         self.assertEqual(selector, serializer.even_column_selector())
 
     def test_table_banded_rows(self):
@@ -1463,7 +1543,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             name='table',
             col_band_size=1,
         )
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         expected = ''
         self.assertEqual(expected, serializer.column_inside_vertical_selector())
 
@@ -1473,7 +1553,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             name='table',
             col_band_size=2,
         )
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         expected = (
             'table.table tr td:nth-child(4n+1) + td:nth-child(4n+2)'
         )
@@ -1485,7 +1565,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             name='table',
             col_band_size=3,
         )
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         expected = (
             'table.table tr td:nth-child(6n+1) + td:nth-child(6n+2), '
             'table.table tr td:nth-child(6n+2) + td:nth-child(6n+3)'
@@ -1498,7 +1578,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             name='table',
             col_band_size=1,
         )
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         expected = ''
         result = serializer.column_inside_vertical_selector(odd=False)
         self.assertEqual(expected, result)
@@ -1509,7 +1589,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             name='table',
             col_band_size=2,
         )
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         expected = (
             'table.table tr td:nth-child(4n+3) + td:nth-child(4n+4)'
         )
@@ -1522,7 +1602,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             name='table',
             col_band_size=3,
         )
-        serializer = CssTableSerializer(table)
+        serializer = CssTableSerializer(table, FACTORY)
         expected = (
             'table.table tr td:nth-child(6n+4) + td:nth-child(6n+5), '
             'table.table tr td:nth-child(6n+5) + td:nth-child(6n+6)'
@@ -1552,7 +1632,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             id=name,
             name=name,
         )
-        style = CssTableSerializer(table)
+        style = CssTableSerializer(table, FACTORY)
         expected = 'table.table tr:first-of-type td:first-of-type'
         self.assertEqual(expected, style.top_left_cell_selector())
 
@@ -1562,7 +1642,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             id=name,
             name=name,
         )
-        style = CssTableSerializer(table)
+        style = CssTableSerializer(table, FACTORY)
         expected = 'table.table tr:first-of-type td:last-of-type'
         self.assertEqual(expected, style.top_right_cell_selector())
 
@@ -1572,7 +1652,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             id=name,
             name=name,
         )
-        style = CssTableSerializer(table)
+        style = CssTableSerializer(table, FACTORY)
         expected = 'table.table tr:last-of-type td:first-of-type'
         self.assertEqual(expected, style.bottom_left_cell_selector())
 
@@ -1582,7 +1662,7 @@ class TestCssTableConditionalFormatting(CssSerializerTestHarness):
             id=name,
             name=name,
         )
-        style = CssTableSerializer(table)
+        style = CssTableSerializer(table, FACTORY)
         expected = 'table.table tr:last-of-type td:last-of-type'
         self.assertEqual(expected, style.bottom_right_cell_selector())
 

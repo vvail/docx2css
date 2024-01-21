@@ -2,94 +2,80 @@ from unittest import TestCase
 
 import cssutils
 
+from docx2css.css.serializers import FACTORY
 from docx2css.ooxml.package import OpcPackage
-
+from docx2css.ooxml.parsers import DocxParser
 
 cssutils.ser.prefs.indentClosingBrace = False
 cssutils.ser.prefs.omitLastSemicolon = False
 
 
-class PageSizeTestCase(TestCase):
+def get_page_style(filename):
+    parser = DocxParser(filename)
+    return parser.parse_page_style()
 
-    def compare_style(self, css_style_rule, css_filename):
-        with open(css_filename, 'r') as css_file:
-            expected = css_file.read()
-            css_text = css_style_rule.cssText
-            print(css_text)
-            self.assertEqual(expected, css_text)
+
+class SectionParserTestCase(TestCase):
 
     def test_height_letter(self):
-        package = OpcPackage('test_files/numbering/docx/requete.docx')
-        section = package.sections[-1]
-        self.assertEqual(11, section.height.inches)
+        style = get_page_style('test_files/numbering/docx/requete.docx')
+        self.assertEqual(11, style.page_height.inches)
 
     def test_height_legal_landscape(self):
-        package = OpcPackage('test_files/sections/docx/legal_landscape.docx')
-        section = package.sections[-1]
-        self.assertEqual(8.5, section.height.inches)
+        style = get_page_style('test_files/sections/docx/legal_landscape.docx')
+        self.assertEqual(8.5, style.page_height.inches)
 
     def test_width_letter(self):
-        package = OpcPackage('test_files/numbering/docx/requete.docx')
-        section = package.sections[-1]
-        self.assertEqual(8.5, section.width.inches)
+        style = get_page_style('test_files/numbering/docx/requete.docx')
+        self.assertEqual(8.5, style.page_width.inches)
 
     def test_width_legal_landscape(self):
-        package = OpcPackage('test_files/sections/docx/legal_landscape.docx')
-        section = package.sections[-1]
-        self.assertEqual(14, section.width.inches)
+        style = get_page_style('test_files/sections/docx/legal_landscape.docx')
+        self.assertEqual(14, style.page_width.inches)
 
     def test_orientation_portrait(self):
-        package = OpcPackage('test_files/numbering/docx/requete.docx')
-        section = package.sections[-1]
-        page_size = section.page_size
-        self.assertEqual('portrait', page_size.orientation)
+        style = get_page_style('test_files/numbering/docx/requete.docx')
+        self.assertEqual('portrait', style.page_orientation)
 
     def test_orientation_landscape(self):
-        package = OpcPackage('test_files/sections/docx/legal_landscape.docx')
-        section = package.sections[-1]
-        page_size = section.page_size
-        self.assertEqual('landscape', page_size.orientation)
+        style = get_page_style('test_files/sections/docx/legal_landscape.docx')
+        self.assertEqual('landscape', style.page_orientation)
 
     def test_margin_top_1in(self):
-        package = OpcPackage('test_files/numbering/docx/requete.docx')
-        section = package.sections[-1]
-        margin = section.margin_top.inches
-        self.assertEqual(1, margin)
+        style = get_page_style('test_files/numbering/docx/requete.docx')
+        self.assertEqual(1, style.margin_top.inches)
 
     def test_margin_right_1in(self):
-        package = OpcPackage('test_files/numbering/docx/requete.docx')
-        section = package.sections[-1]
-        margin = section.margin_right.inches
-        self.assertEqual(1, margin)
+        style = get_page_style('test_files/numbering/docx/requete.docx')
+        self.assertEqual(1, style.margin_right.inches)
 
     def test_margin_bottom_1in(self):
-        package = OpcPackage('test_files/numbering/docx/requete.docx')
-        section = package.sections[-1]
-        margin = section.margin_bottom.inches
-        self.assertEqual(1, margin)
+        style = get_page_style('test_files/numbering/docx/requete.docx')
+        self.assertEqual(1, style.margin_bottom.inches)
 
     def test_margin_left_1in(self):
-        package = OpcPackage('test_files/numbering/docx/requete.docx')
-        section = package.sections[-1]
-        margin = section.margin_left.inches
-        self.assertEqual(1, margin)
+        style = get_page_style('test_files/numbering/docx/requete.docx')
+        self.assertEqual(1, style.margin_left.inches)
+
+
+class PageSizeSerializerTestCase(TestCase):
+
+    def compare_style(self, docx_filename, css_filename):
+        with open(css_filename, 'r') as css_file:
+            expected = css_file.read()
+            style = get_page_style(docx_filename)
+            serializer = FACTORY.get_block_serializer(style)
+            css_stylesheet = cssutils.css.CSSStyleSheet()
+            for rule in serializer.css_style_rules():
+                css_stylesheet.add(rule)
+            result = css_stylesheet.cssText.decode('utf-8')
+            self.assertEqual(expected, result)
 
     def test_css_print_letter(self):
-        package = OpcPackage('test_files/numbering/docx/requete.docx')
-        section = package.sections[-1]
         # There shouldn't be a tab before the last brace, but there it is...
-        self.compare_style(section.css_style_rule_print(),
+        self.compare_style('test_files/numbering/docx/requete.docx',
                            'test_files/sections/css/requete_print.css')
 
     def test_css_print_legal(self):
-        package = OpcPackage('test_files/sections/docx/legal_landscape.docx')
-        section = package.sections[-1]
-        self.compare_style(section.css_style_rule_print(),
+        self.compare_style('test_files/sections/docx/legal_landscape.docx',
                            'test_files/sections/css/legal_landscape_print.css')
-
-    def test_css_screen_letter(self):
-        package = OpcPackage('test_files/numbering/docx/requete.docx')
-        section = package.sections[-1]
-        # There shouldn't be a tab before the last brace, but there it is...
-        self.compare_style(section.css_style_rule_screen(),
-                           'test_files/sections/css/requete_screen.css')

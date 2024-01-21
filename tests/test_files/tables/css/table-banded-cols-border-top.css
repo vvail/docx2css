@@ -1,4 +1,6 @@
 table.table-banded-cols-border-top {
+    line-height: 1;
+    margin-bottom: 0;
     border-collapse: collapse;
 }
 table.table-banded-cols-border-top tr td:nth-child(4n+1), table.table-banded-cols-border-top tr td:nth-child(4n+2) {

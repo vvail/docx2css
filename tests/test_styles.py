@@ -1,17 +1,31 @@
+import logging
 from unittest import TestCase
 import warnings
 
 import cssutils
 from lxml import etree
 
-from docx2css import open_docx
+from docx2css.css.serializers import FACTORY, CssStylesheetSerializer
 from docx2css.ooxml.package import OpcPackage
 from docx2css.ooxml.styles import Styles
-from docx2css.stylesheet import Stylesheet
-from docx2css.utils import CSSColor
+from docx2css.ooxml.parsers import DocxParser
+from docx2css.utils import CSSColor, CssUnit
+
 
 cssutils.ser.prefs.indentClosingBrace = False
 cssutils.ser.prefs.omitLastSemicolon = False
+logging.basicConfig(format='%(filename)s:%(lineno)d %(message)s',
+                    level=logging.DEBUG)
+
+
+def print_styles_tree(docx_filename):
+    parser = OpcPackage(docx_filename)
+    styles = parser.styles
+    root_styles = (
+        s for s in styles.values() if s.parent_id is None
+    )
+    print(f'Styles in {docx_filename}:')
+    print(styles.print_styles_tree(root_styles))
 
 
 class TestHarness(TestCase):
@@ -19,44 +33,48 @@ class TestHarness(TestCase):
     files = ()
     css_files_location = None
     docx_files_location = None
+    parse_numbering_instances = False
 
-    def setUp(self):
-        self.styles = {}
-        for file in self.files:
-            parser = OpcPackage(f'{self.docx_files_location}{file}')
-            stylesheet = parser.styles
-            for style in stylesheet.values():
+    @classmethod
+    def setUpClass(cls):
+        cls.styles = {}
+        cls.api_styles = {}
+        # cls.stylesheet = docx2css.stylesheet.Stylesheet()
+        for file in cls.files:
+            parser = DocxParser(f'{cls.docx_files_location}{file}')
+            docx_styles = parser.opc_package.styles
+            if cls.parse_numbering_instances:
+                parser.parse_numbering()
+            for docx_style in docx_styles.values():
                 # Sanity check
-                if style.name in self.styles.keys():
-                    msg = f'ERROR: Style "{style.name}" already exists!'
+                if docx_style.name in cls.styles.keys():
+                    msg = f'ERROR: Style "{docx_style.name}" already exists!'
                     warnings.warn(msg)
-                self.styles[style.name] = style
+                cls.styles[docx_style.name] = docx_style
+                api_style = parser.parse_docx_style(docx_style)
+                if api_style:
+                    cls.api_styles[api_style.id] = api_style
+                #     cls.stylesheet.add_style(api_style)
 
-    def print_styles_tree(self, style_type):
-        for file in self.files:
-            parser = OpcPackage(f'{self.docx_files_location}{file}')
-            stylesheet = parser.styles
-            style_list = None
-            if style_type == 'character':
-                style_list = stylesheet.character_styles.values()
-            elif style_type == 'paragraph':
-                style_list = stylesheet.paragraph_styles.values()
-            root_styles = (
-                s for s in style_list if s.parent_id is None
-            )
-            print(f'Styles in {file}:')
-            print(stylesheet.print_styles_tree(root_styles))
+    def single_style_css(self, style_id):
+        """Get the CSS text equivalent to the api_style provided as arg"""
+        api_style = self.api_styles.get(style_id)
+        serializer = FACTORY.get_block_serializer(api_style)
+        css_stylesheet = cssutils.css.CSSStyleSheet()
+        for rule in serializer.css_style_rules():
+            css_stylesheet.add(rule)
+        return css_stylesheet.cssText.decode('utf-8')
 
     def style_test_harness(self, style_name):
-        style = self.styles[style_name]
+        docx_style = self.styles[style_name]
+        print(etree.tostring(docx_style, pretty_print=True).decode('utf-8'))
         css_file = f'{self.css_files_location}{"".join(style_name.split())}.css'
-        print(etree.tostring(style, pretty_print=True).decode('utf-8'))
-        self.compare_style(style.css_style_rule(), css_file)
+        self.compare_style(docx_style.id, css_file)
 
-    def compare_style(self, css_style_rule, css_filename):
+    def compare_style(self, style_id, css_filename):
         with open(css_filename, 'r') as css_file:
             expected = css_file.read()
-            css_text = css_style_rule.cssText
+            css_text = self.single_style_css(style_id)
             print(css_text)
             self.assertEqual(expected, css_text)
 
@@ -75,11 +93,12 @@ class TestHarness(TestCase):
         """
         style = self.styles[style_name]
         print(etree.tostring(style, pretty_print=True).decode('utf-8'))
-        print(style.css_style_rule().cssText)
+        api_style = self.api_styles.get(style.id)
+        serializer = FACTORY.get_block_serializer(api_style)
         with open(f'{self.css_files_location}{"".join(style_name.split())}.css', 'r') as css_file:
             expected = cssutils.parseString(css_file.read()).cssRules[0]
             expected_color = expected.style[rule_name]
-            result = style.css_style_rule()
+            result = list(serializer.css_style_rules())[0]
             result_color = result.style[rule_name]
 
             # Compare selector
@@ -108,6 +127,27 @@ class StylesTestCase(TestCase):
             print(s)
         self.assertEqual(27, len(styles))
         self.assertEqual('allegations-L1', styles['allegations-L1'].id)
+
+    def test_hierarchy(self):
+        docx_files_location = 'test_files/character/docx/'
+        parser = DocxParser(f'{docx_files_location}character_styles.docx')
+        docx_styles = parser.opc_package.styles
+
+        parent_id = 'boldcharstyle'
+        parent = docx_styles[parent_id]
+        child1_id = 'bolditaliccharstyle'
+        child2_id = 'notboldcharstyle'
+        child1 = docx_styles[child1_id]
+        child2 = docx_styles[child2_id]
+        self.assertEqual(2, len(parent.children_styles))
+        self.assertEqual(parent_id, child1.parent_id)
+        self.assertEqual(parent_id, child2.parent_id)
+
+        api_parent = parser.parse_docx_style(parent)
+        parser.parse_docx_style(child1)
+        parser.parse_docx_style(child2)
+
+        self.assertEqual(2, len(api_parent.children))
 
 
 class CharacterStylesTestCase(TestHarness):
@@ -476,6 +516,14 @@ class CharacterStylesTestCase(TestHarness):
 
     ##########################################################################
     #                                                                        #
+    # Small Caps                                                             #
+    #                                                                        #
+    ##########################################################################
+    def test_small_caps_char_style(self):
+        self.style_test_harness('small_caps_char_style')
+
+    ##########################################################################
+    #                                                                        #
     # Character Spacing                                                      #
     #                                                                        #
     ##########################################################################
@@ -621,9 +669,6 @@ class ParagraphStylesTestCase(TestHarness):
     )
     css_files_location = 'test_files/paragraph/css/'
     docx_files_location = 'test_files/paragraph/docx/'
-
-    def test_print_tree(self):
-        self.print_styles_tree('paragraph')
 
     ##########################################################################
     #                                                                        #
@@ -771,27 +816,45 @@ class ParagraphStylesTestCase(TestHarness):
         self.style_test_harness('pagination_widow_control_on_paragraph')
 
 
-class DocDefaultsTestCase(TestHarness):
-    files = (
-        'normal_paragraph_styles.docx',
-    )
+class DocDefaultsTestCase(TestCase):
     css_files_location = 'test_files/paragraph/css/'
-    docx_files_location = 'test_files/paragraph/docx/'
+
+    def setUp(self):
+        filename = 'test_files/paragraph/docx/normal_paragraph_styles.docx'
+        parser = DocxParser(filename)
+        self.body_style = parser.parse().body_style
+
+    def test_parse_doc_defaults(self):
+        self.assertEqual(CssUnit(11, 'pt'), self.body_style.font_size)
+        self.assertEqual('Calibri, sans-serif', self.body_style.font_family)
+        self.assertEqual(1.08, round(self.body_style.line_height, 2))
+        self.assertEqual(CssUnit(8, 'pt'), self.body_style.margin_bottom)
 
     def test_normal_paragraph(self):
         css_file = f'{self.css_files_location}body_defaults.css'
-        package = OpcPackage('test_files/paragraph/docx/normal_paragraph_styles.docx')
-        stylesheet = Stylesheet(package)
-        body = stylesheet.css_body_style()
-        self.compare_style(body, css_file)
+
+        with open(css_file, 'r') as css_file:
+            expected = css_file.read()
+
+        serializer = FACTORY.get_block_serializer(self.body_style)
+        css_stylesheet = cssutils.css.CSSStyleSheet()
+        for rule in serializer.css_style_rules():
+            css_stylesheet.add(rule)
+        result = css_stylesheet.cssText.decode('utf-8')
+
+        self.assertEqual(expected, result)
 
 
 class RequeteTestCase(TestCase):
+    maxDiff = None
 
     def compare_documents(self, docx_source, expected_css):
-        stylesheet = open_docx(docx_source)
-        stylesheet.preferences['simulate_printed_page'] = True
-        css = stylesheet.cssText
+        parser = DocxParser(docx_source)
+        stylesheet = parser.parse()
+        serializer = CssStylesheetSerializer(stylesheet)
+        css = serializer.serialize()
+        # stylesheet.preferences['simulate_printed_page'] = True
+        # css = stylesheet.cssText
         with open(expected_css, 'r') as expected:
             self.assertEqual(expected.read(), css)
 
@@ -808,6 +871,7 @@ class RequeteTestCase(TestCase):
                                'test_files/enveloppe.css')
 
     def test_fax(self):
+        print_styles_tree('test_files/fax.docx')
         self.compare_documents('test_files/fax.docx',
                                'test_files/fax.css')
 
@@ -828,7 +892,703 @@ class RequeteTestCase(TestCase):
                                'test_files/resolution.css')
 
     def test_normal_paragraph_selector(self):
-        package = OpcPackage('test_files/numbering/docx/requete.docx')
-        p = package.styles['Normal']
+        parser = DocxParser('test_files/numbering/docx/requete.docx')
+        stylesheet = parser.parse()
+        style = stylesheet.paragraph_styles['']
+        block_serializer = FACTORY.get_block_serializer(style)
         expected = 'p, h1, h2, h3'
-        self.assertEqual(expected, p.css_selector())
+        self.assertEqual(expected, block_serializer.css_selector())
+
+    def test_no_space_hierarchy(self):
+        parser = DocxParser('test_files/numbering/docx/requete.docx')
+        stylesheet = parser.parse()
+        style = stylesheet.paragraph_styles['no-space']
+        block_serializer = FACTORY.get_block_serializer(style)
+        expected = 'p.no-space, p.no-space-center-bold'
+        self.assertEqual(expected, block_serializer.css_selector())
+
+
+class CharacterStylesParserTestCase(TestCase):
+    files = (
+        'character_styles.docx',
+        'border_character_styles.docx',
+        'font_character_styles.docx',
+        'highlight_char_styles.docx',
+        'legacy_char_styles.docx',
+        'color_char_styles.docx',
+    )
+    css_files_location = 'test_files/character/css/'
+    docx_files_location = 'test_files/character/docx/'
+
+    @classmethod
+    def setUpClass(cls):
+        cls.docx_styles = {}
+        for file in cls.files:
+            cls.parser = DocxParser(f'{cls.docx_files_location}{file}')
+            for docx_style in cls.parser.opc_package.styles.values():
+                cls.docx_styles[docx_style.name] = docx_style
+
+    def get_parsed_style_by_name(self, style_name):
+        docx_style = self.docx_styles[style_name]
+        return self.parser.parse_docx_style(docx_style)
+
+    def test_doc_defaults(self):
+        parser = DocxParser('test_files/paragraph/docx/normal_paragraph_styles.docx')
+        body_style = parser.parse().body_style
+        self.assertEqual(CssUnit(11, 'pt'), body_style.font_size)
+        self.assertEqual('Calibri, sans-serif', body_style.font_family)
+        self.assertEqual(1.08, round(body_style.line_height, 2))
+        self.assertEqual(CssUnit(8, 'pt'), body_style.margin_bottom)
+
+    ##########################################################################
+    #                                                                        #
+    # Bold                                                                   #
+    #                                                                        #
+    ##########################################################################
+    def test_bold_char_style(self):
+        """Bold is active"""
+        style = self.get_parsed_style_by_name('bold_char_style')
+        self.assertTrue(style.bold)
+
+    def test_not_bold_char_style(self):
+        """Child of bold_char_style. Bold is toggled to off"""
+        style = self.get_parsed_style_by_name('not_bold_char_style')
+        self.assertFalse(style.bold)
+
+    ##########################################################################
+    #                                                                        #
+    # Border Character Styles                                                #
+    #                                                                        #
+    ##########################################################################
+    def test_border_char_style(self):
+        style = self.get_parsed_style_by_name('border_char_style')
+        self.assertEqual(CssUnit(0.5, 'pt'), style.border.width)
+        self.assertEqual('solid', style.border.style)
+
+    def test_border_rgb_char_style(self):
+        style = self.get_parsed_style_by_name('border_rgb_char_style')
+        # border-style: solid;
+        # border-width: 0.5pt;
+        # border-color: #F00;
+        self.assertEqual('solid', style.border.style)
+        self.assertEqual(CssUnit(0.5, 'pt'), style.border.width)
+        self.assertEqual('#FF0000', style.border.color)
+
+    def test_border_shadow_char_style(self):
+        style = self.get_parsed_style_by_name('border_shadow_char_style')
+        # border-style: solid;
+        # border-width: 0.5pt;
+        # box-shadow: 0.5pt 0.5pt;
+        self.assertEqual('solid', style.border.style)
+        self.assertEqual(CssUnit(0.5, 'pt'), style.border.width)
+        self.assertTrue(style.border.shadow)
+
+    def test_border_thinThickSmallGap_3d_char_style(self):
+        style = self.get_parsed_style_by_name('border_thinThickSmallGap_3d_char_style')
+        #     border-style: double;
+        #     border-width: 3pt;
+        self.assertEqual('double', style.border.style)
+        self.assertEqual(CssUnit(3, 'pt'), style.border.width)
+
+    def test_border_1pt_char_style(self):
+        style = self.get_parsed_style_by_name('border_1pt_char_style')
+        #     border-style: solid;
+        #     border-width: 1pt;
+        self.assertEqual('solid', style.border.style)
+        self.assertEqual(CssUnit(1, 'pt'), style.border.width)
+
+    def test_border_theme_char_style(self):
+        style = self.get_parsed_style_by_name('border_theme_char_style')
+        #     border-style: solid;
+        #     border-width: 0.25pt;
+        #     border-color: #4472c4;
+        self.assertEqual('solid', style.border.style)
+        self.assertEqual(CssUnit(0.25, 'pt'), style.border.width)
+        self.assertEqual('#4472c4', style.border.color)
+
+    def test_no_border_char_style(self):
+        style = self.get_parsed_style_by_name('no_border_char_style')
+        #     border-style: none;
+        self.assertEqual('none', style.border.style)
+        self.assertIsNone(style.border.color)
+        self.assertEqual(0, style.border.padding)
+        self.assertFalse(style.border.shadow)
+        self.assertEqual(0, style.border.width)
+
+    def test_border_dashDotStroked_char_style(self):
+        style = self.get_parsed_style_by_name('border_dashDotStroked_char_style')
+        #     border-style: dashed;
+        #     border-width: 3pt;
+        self.assertEqual('dashed', style.border.style)
+        self.assertEqual(CssUnit(3, 'pt'), style.border.width)
+
+    ##########################################################################
+    #                                                                        #
+    # Emboss                                                                 #
+    #                                                                        #
+    ##########################################################################
+    def test_emboss_char_style(self):
+        style = self.get_parsed_style_by_name('emboss_char_style')
+        self.assertTrue(style.emboss)
+
+    def test_not_emboss_char_style(self):
+        style = self.get_parsed_style_by_name('not_emboss_char_style')
+        self.assertFalse(style.emboss)
+
+    ##########################################################################
+    #                                                                        #
+    # Fonts                                                                  #
+    #                                                                        #
+    ##########################################################################
+    def test_font_arial_char_style(self):
+        style = self.get_parsed_style_by_name('font_arial_char_style')
+        #     font-family: Arial, sans-serif;
+        self.assertEqual('Arial, sans-serif', style.font_family)
+
+    def test_font_timesNewRoman_char_style(self):
+        style = self.get_parsed_style_by_name('font_timesNewRoman_char_style')
+        #     font-family: "Times New Roman", serif;
+        self.assertEqual('"Times New Roman", serif', style.font_family)
+
+    def test_font_body_char_style(self):
+        style = self.get_parsed_style_by_name('font_body_char_style')
+        #     font-family: Calibri, sans-serif;
+        self.assertEqual('Calibri, sans-serif', style.font_family)
+
+    def test_font_hansi_char_style(self):
+        style = self.get_parsed_style_by_name('font_hansi_char_style')
+        #     font-family: "Cooper Black", "Times New Roman", serif;
+        self.assertEqual('"Cooper Black", "Times New Roman", serif',
+                         style.font_family)
+
+    ##########################################################################
+    #                                                                        #
+    # Imprint                                                                #
+    #                                                                        #
+    ##########################################################################
+    def test_imprint_char_style(self):
+        style = self.get_parsed_style_by_name('imprint_char_style')
+        self.assertTrue(style.imprint)
+
+    def test_not_imprint_char_style(self):
+        style = self.get_parsed_style_by_name('not_imprint_char_style')
+        self.assertFalse(style.imprint)
+
+    ##########################################################################
+    #                                                                        #
+    # Italic                                                                 #
+    #                                                                        #
+    ##########################################################################
+    def test_italic_char_style(self):
+        """Italic is active"""
+        style = self.get_parsed_style_by_name('italic_char_style')
+        self.assertTrue(style.italics)
+
+    def test_not_italic_char_style(self):
+        """Child of italic_char_style. Italic is toggled to off"""
+        style = self.get_parsed_style_by_name('not_italic_char_style')
+        self.assertFalse(style.italics)
+
+    def test_bold_italic_char_style(self):
+        """Child of bold_char_style with italic added"""
+        style = self.get_parsed_style_by_name('bold_italic_char_style')
+        self.assertTrue(style.italics)
+        self.assertTrue(style.bold)
+
+    ##########################################################################
+    #                                                                        #
+    # Caps                                                                   #
+    #                                                                        #
+    ##########################################################################
+    def test_caps_char_style(self):
+        """Text in uppercase"""
+        style = self.get_parsed_style_by_name('caps_char_style')
+        self.assertTrue(style.all_caps)
+
+    def test_not_caps_char_style(self):
+        """Child of caps_char_style. Uppercase it toggled off"""
+        style = self.get_parsed_style_by_name('not_caps_char_style')
+        self.assertFalse(style.all_caps)
+
+    ##########################################################################
+    #                                                                        #
+    # Font Color                                                             #
+    #                                                                        #
+    ##########################################################################
+    def test_color_rgb_char_style(self):
+        style = self.get_parsed_style_by_name('color_rgb_char_style')
+        self.assertEqual('#FF0000', style.font_color)
+
+    def test_color_theme_accent2_char_style(self):
+        style = self.get_parsed_style_by_name('color_theme_accent2_char_style')
+        self.assertEqual('#ed7d31', style.font_color)
+
+    ##########################################################################
+    #                                                                        #
+    # dStrike                                                                #
+    #                                                                        #
+    ##########################################################################
+    def test_dstrike_char_style(self):
+        style = self.get_parsed_style_by_name('dstrike_char_style')
+        self.assertTrue(style.double_strike)
+
+    def test_not_dstrike_char_style(self):
+        style = self.get_parsed_style_by_name('not_dstrike_char_style')
+        self.assertFalse(style.double_strike)
+
+    ##########################################################################
+    #                                                                        #
+    # Strike                                                                 #
+    #                                                                        #
+    ##########################################################################
+    def test_strike_char_style(self):
+        style = self.get_parsed_style_by_name('strike_char_style')
+        self.assertTrue(style.strike)
+
+    def test_not_strike_char_style(self):
+        style = self.get_parsed_style_by_name('not_strike_char_style')
+        self.assertFalse(style.strike)
+
+    ##########################################################################
+    #                                                                        #
+    # Font Size                                                              #
+    #                                                                        #
+    ##########################################################################
+    def test_font_14pt_char_style(self):
+        style = self.get_parsed_style_by_name('font_14pt_char_style')
+        self.assertEqual(CssUnit(14, 'pt'), style.font_size)
+
+    def test_font_17hlfpt_char_style(self):
+        style = self.get_parsed_style_by_name('font_17hlfpt_char_style')
+        self.assertEqual(CssUnit(8.5, 'pt'), style.font_size)
+
+    ##########################################################################
+    #                                                                        #
+    # Highlight                                                              #
+    #                                                                        #
+    ##########################################################################
+    def test_highlight_darkMagenta_char_style(self):
+        style = self.get_parsed_style_by_name('highlight_darkMagenta_char_style')
+        self.assertEqual('darkmagenta', style.highlight)
+
+    def test_no_highlight_char_style(self):
+        style = self.get_parsed_style_by_name('no_highlight_char_style')
+        self.assertEqual('none', style.highlight)
+
+    ##########################################################################
+    #                                                                        #
+    # Kerning                                                                #
+    #                                                                        #
+    ##########################################################################
+    def test_kerning_12pt_char_style(self):
+        style = self.get_parsed_style_by_name('kerning_12pt_char_style')
+        self.assertTrue(style.font_kerning)
+
+    def test_no_kerning_char_style(self):
+        style = self.get_parsed_style_by_name('no_kerning_char_style')
+        self.assertFalse(style.font_kerning)
+
+    ##########################################################################
+    #                                                                        #
+    # Outline                                                                #
+    #                                                                        #
+    ##########################################################################
+    def test_outline_char_style(self):
+        style = self.get_parsed_style_by_name('outline_char_style')
+        self.assertTrue(style.outline)
+
+    def test_not_outline_char_style(self):
+        style = self.get_parsed_style_by_name('not_outline_char_style')
+        self.assertFalse(style.outline)
+
+    ##########################################################################
+    #                                                                        #
+    # Position                                                               #
+    #                                                                        #
+    ##########################################################################
+    def test_position_lowered_3pt_char_style(self):
+        style = self.get_parsed_style_by_name('position_lowered_3pt_char_style')
+        self.assertEqual(CssUnit(-3, 'pt'), style.position)
+
+    def test_position_raised_3pt_char_style(self):
+        style = self.get_parsed_style_by_name('position_raised_3pt_char_style')
+        self.assertEqual(CssUnit(3, 'pt'), style.position)
+
+    def test_position_normal_char_style(self):
+        style = self.get_parsed_style_by_name('position_normal_char_style')
+        self.assertEqual(CssUnit(0, 'pt'), style.position)
+
+    def test_position_lowered_3pt_superscript_char_style(self):
+        style = self.get_parsed_style_by_name('position_lowered_3pt_superscript_char_style')
+        self.assertEqual(CssUnit(-3, 'pt'), style.position)
+
+    ##########################################################################
+    #                                                                        #
+    # Shadow                                                                 #
+    #                                                                        #
+    ##########################################################################
+    def test_shadow_char_style(self):
+        style = self.get_parsed_style_by_name('shadow_char_style')
+        self.assertTrue(style.shadow)
+
+    def test_not_shadow_char_style(self):
+        style = self.get_parsed_style_by_name('not_shadow_char_style')
+        self.assertFalse(style.shadow)
+
+    ##########################################################################
+    #                                                                        #
+    # Shading                                                                #
+    #                                                                        #
+    ##########################################################################
+    def test_shading_blue_char_style(self):
+        style = self.get_parsed_style_by_name('shading_blue_char_style')
+        self.assertEqual('#0070C0', style.background_color)
+
+    def test_no_shading_char_style(self):
+        style = self.get_parsed_style_by_name('no_shading_char_style')
+        self.assertEqual('', style.background_color)
+
+    def test_highlight_darkMagenta_shading_yellow_char_style(self):
+        style = self.get_parsed_style_by_name('highlight_darkMagenta_shading_yellow_char_style')
+        self.assertEqual('#FF0000', style.background_color)
+
+    ##########################################################################
+    #                                                                        #
+    # Small Caps                                                             #
+    #                                                                        #
+    ##########################################################################
+    def test_small_caps_char_style(self):
+        style = self.get_parsed_style_by_name('small_caps_char_style')
+        self.assertTrue(style.small_caps)
+
+    ##########################################################################
+    #                                                                        #
+    # Character Spacing                                                      #
+    #                                                                        #
+    ##########################################################################
+    def test_spacing_expanded_2pt_char_style(self):
+        style = self.get_parsed_style_by_name('spacing_expanded_2pt_char_style')
+        self.assertEqual(CssUnit(2, 'pt'), style.letter_spacing)
+
+    def test_spacing_condensed_3pt_char_style(self):
+        style = self.get_parsed_style_by_name('spacing_condensed_3pt_char_style')
+        self.assertEqual(CssUnit(-3, 'pt'), style.letter_spacing)
+
+    def test_spacing_normal_char_style(self):
+        style = self.get_parsed_style_by_name('spacing_normal_char_style')
+        self.assertEqual(CssUnit(0, 'pt'), style.letter_spacing)
+
+    ##########################################################################
+    #                                                                        #
+    # Underline                                                              #
+    #                                                                        #
+    ##########################################################################
+    def test_underline_char_style(self):
+        style = self.get_parsed_style_by_name('underline_char_style')
+        #     text-decoration-line: underline;
+        #     text-decoration-style: solid;
+        self.assertEqual('solid', style.underline.style)
+        self.assertEqual(style.underline.UNDERLINE, style.underline.line)
+
+    def test_not_underline_char_style(self):
+        style = self.get_parsed_style_by_name('not_underline_char_style')
+        #     text-decoration-line: none;
+        self.assertEqual(0, style.underline.line)
+
+    ##########################################################################
+    #                                                                        #
+    # Underline Colors                                                       #
+    #                                                                        #
+    ##########################################################################
+    def test_underline_rgb_char_style(self):
+        style = self.get_parsed_style_by_name('underline_rgb_char_style')
+        self.assertEqual('#FF0000', style.underline.color)
+
+    def test_underline_theme_char_style(self):
+        style = self.get_parsed_style_by_name('underline_theme_char_style')
+        self.assertEqual('#4472c4', style.underline.color)
+
+    def test_underline_themetint_char_style(self):
+        style = self.get_parsed_style_by_name('underline_themetint_char_style')
+        self.assertEqual('#8eaadb', style.underline.color)
+
+    def test_underline_hsl_char_style(self):
+        style = self.get_parsed_style_by_name('underline_hsl_char_style')
+        self.assertEqual('#178D79', style.underline.color)
+
+    ##########################################################################
+    #                                                                        #
+    # Vanish                                                                 #
+    #                                                                        #
+    ##########################################################################
+    def test_vanish_char_style(self):
+        style = self.get_parsed_style_by_name('vanish_char_style')
+        self.assertTrue(style.visible)
+
+    def test_not_vanish_char_style(self):
+        style = self.get_parsed_style_by_name('not_vanish_char_style')
+        self.assertFalse(style.visible)
+
+    ##########################################################################
+    #                                                                        #
+    # vertAlign                                                              #
+    #                                                                        #
+    ##########################################################################
+    def test_superscript_char_style(self):
+        style = self.get_parsed_style_by_name('superscript_char_style')
+        self.assertEqual('superscript', style.vertical_align)
+
+    def test_not_superscript_char_style(self):
+        style = self.get_parsed_style_by_name('not_superscript_char_style')
+        self.assertEqual('baseline', style.vertical_align)
+
+    def test_subscript_char_style(self):
+        style = self.get_parsed_style_by_name('subscript_char_style')
+        self.assertEqual('subscript', style.vertical_align)
+
+    def test_not_subscript_char_style(self):
+        style = self.get_parsed_style_by_name('not_subscript_char_style')
+        self.assertEqual('baseline', style.vertical_align)
+
+
+class ParagraphStylesParserTestCase(TestCase):
+    files = (
+        'paragraph_styles.docx',
+        'border_paragraph_styles.docx',
+    )
+    css_files_location = 'test_files/paragraph/css/'
+    docx_files_location = 'test_files/paragraph/docx/'
+
+    @classmethod
+    def setUpClass(cls):
+        cls.docx_styles = {}
+        for file in cls.files:
+            cls.parser = DocxParser(f'{cls.docx_files_location}{file}')
+            for docx_style in cls.parser.opc_package.styles.values():
+                cls.docx_styles[docx_style.name] = docx_style
+
+    def get_parsed_style_by_name(self, style_name):
+        docx_style = self.docx_styles[style_name]
+        return self.parser.parse_docx_style(docx_style)
+
+    def test_normal_paragraph(self):
+        style = self.get_parsed_style_by_name('Normal')
+        self.assertEqual('', style.name)
+        self.assertEqual('', style.id)
+        style = self.get_parsed_style_by_name('bold_paragraph')
+        self.assertIsNotNone(style.parent)
+
+    ##########################################################################
+    #                                                                        #
+    # Bold                                                                   #
+    #                                                                        #
+    ##########################################################################
+    def test_bold_paragraph(self):
+        style = self.get_parsed_style_by_name('bold_paragraph')
+        self.assertTrue(style.bold)
+
+    ##########################################################################
+    #                                                                        #
+    # Borders                                                                #
+    #                                                                        #
+    ##########################################################################
+    def test_border_all_solid_auto_05pt_paragraph(self):
+        style = self.get_parsed_style_by_name('border_all_solid_auto_05pt_paragraph')
+
+        def test_border(api_style, direction, values):
+            border = getattr(api_style, f'border_{direction}')
+            self.assertEqual(values[0], border.style)
+            self.assertEqual(values[1], border.width)
+            self.assertEqual(values[2], border.padding)
+
+        #     border-bottom-style: solid;
+        #     border-bottom-width: 0.5pt;
+        #     padding-bottom: 1pt;
+        test_border(style, 'bottom',
+                    ('solid', CssUnit(0.5, 'pt'), CssUnit(1, 'pt')))
+        #     border-left-style: solid;
+        #     border-left-width: 0.5pt;
+        #     padding-left: 4pt;
+        test_border(style, 'left',
+                    ('solid', CssUnit(0.5, 'pt'), CssUnit(4, 'pt')))
+        #     border-top-style: solid;
+        #     border-top-width: 0.5pt;
+        #     padding-top: 1pt;
+        test_border(style, 'top',
+                    ('solid', CssUnit(0.5, 'pt'), CssUnit(1, 'pt')))
+        #     border-right-style: solid;
+        #     border-right-width: 0.5pt;
+        #     padding-right: 4pt;
+        test_border(style, 'right',
+                    ('solid', CssUnit(0.5, 'pt'), CssUnit(4, 'pt')))
+
+    ##########################################################################
+    #                                                                        #
+    # Indent                                                                 #
+    #                                                                        #
+    ##########################################################################
+    def test_indent_firstline_05in_paragraph(self):
+        style = self.get_parsed_style_by_name('indent_firstline_05in_paragraph')
+        self.assertEqual(CssUnit(0.5, 'in'), style.text_indent)
+
+    def test_indent_hanging_044in_paragraph(self):
+        style = self.get_parsed_style_by_name('indent_hanging_044in_paragraph')
+        #     margin-left: 0.44in;
+        #     text-indent: -0.44in;
+        self.assertEqual(-0.44, round(style.text_indent.inches, 2))
+        self.assertEqual(0.44, round(style.margin_left.inches, 2))
+
+    def test_indent_left_02in_negative_paragraph(self):
+        style = self.get_parsed_style_by_name('indent_left_02in_negative_paragraph')
+        #     margin-left: -0.2in;
+        self.assertEqual(CssUnit(-0.2, 'in'), style.margin_left)
+
+    def test_indent_left_05in_paragraph(self):
+        style = self.get_parsed_style_by_name('indent_left_05in_paragraph')
+        self.assertEqual(CssUnit(0.5, 'in'), style.margin_left)
+
+    def test_indent_right_03in_negative_paragraph(self):
+        style = self.get_parsed_style_by_name('indent_right_03in_negative_paragraph')
+        self.assertEqual(CssUnit(-0.3, 'in'), style.margin_right)
+
+    def test_indent_right_04in_paragraph(self):
+        style = self.get_parsed_style_by_name('indent_right_04in_paragraph')
+        self.assertEqual(CssUnit(0.4, 'in'), style.margin_right)
+
+    def test_indent_left_05in_right_02in_mirror_paragraph(self):
+        style = self.get_parsed_style_by_name('indent_left_05in_right_02in_mirror_paragraph')
+        self.assertEqual(CssUnit(0.5, 'in'), style.margin_left)
+        self.assertEqual(CssUnit(0.2, 'in'), style.margin_right)
+
+    ##########################################################################
+    #                                                                        #
+    # Justify                                                                #
+    #                                                                        #
+    ##########################################################################
+    def test_justify_left_paragraph(self):
+        style = self.get_parsed_style_by_name('justify_left_paragraph')
+        self.assertEqual('start', style.text_align)
+
+    def test_justify_center_paragraph(self):
+        style = self.get_parsed_style_by_name('justify_center_paragraph')
+        self.assertEqual('center', style.text_align)
+
+    def test_justify_right_paragraph(self):
+        style = self.get_parsed_style_by_name('justify_right_paragraph')
+        self.assertEqual('end', style.text_align)
+
+    def test_justify_justify_paragraph(self):
+        style = self.get_parsed_style_by_name('justify_justify_paragraph')
+        self.assertEqual('justify', style.text_align)
+
+    ##########################################################################
+    #                                                                        #
+    # Line Spacing                                                           #
+    #                                                                        #
+    ##########################################################################
+    def test_line_spacing_15lines_paragraph(self):
+        style = self.get_parsed_style_by_name('line_spacing_15lines_paragraph')
+        self.assertEqual(1.5, style.line_height)
+
+    def test_line_spacing_atleast_14pt_paragraph(self):
+        style = self.get_parsed_style_by_name('line_spacing_atleast_14pt_paragraph')
+        self.assertEqual(CssUnit(14, 'pt'), style.line_height)
+
+    def test_line_spacing_double_paragraph(self):
+        style = self.get_parsed_style_by_name('line_spacing_double_paragraph')
+        self.assertEqual(2, style.line_height)
+
+    def test_line_spacing_exactly_16pt_paragraph(self):
+        style = self.get_parsed_style_by_name('line_spacing_exactly_16pt_paragraph')
+        self.assertEqual(CssUnit(16, 'pt'), style.line_height)
+
+    def test_line_spacing_multiple_3_paragraph(self):
+        style = self.get_parsed_style_by_name('line_spacing_multiple_3_paragraph')
+        self.assertEqual(3, style.line_height)
+
+    def test_line_spacing_multiple_109_paragraph(self):
+        style = self.get_parsed_style_by_name('line_spacing_multiple_109_paragraph')
+        self.assertEqual(1.09, round(style.line_height, 2))
+
+    def test_line_spacing_single_paragraph(self):
+        style = self.get_parsed_style_by_name('line_spacing_single_paragraph')
+        self.assertEqual(1, style.line_height)
+
+    ##########################################################################
+    #                                                                        #
+    # Paragraph Shading                                                      #
+    #                                                                        #
+    ##########################################################################
+    def test_shading_rgb_paragraph(self):
+        style = self.get_parsed_style_by_name('shading_rgb_paragraph')
+        self.assertEqual('#FF0000', style.background_color)
+
+    ##########################################################################
+    #                                                                        #
+    # Paragraph Spacing                                                      #
+    #                                                                        #
+    ##########################################################################
+    def test_spacing_after_12pt_paragraph(self):
+        style = self.get_parsed_style_by_name('spacing_after_12pt_paragraph')
+        self.assertEqual(CssUnit(12, 'pt'), style.margin_bottom)
+
+    def test_spacing_after_155pt_paragraph(self):
+        style = self.get_parsed_style_by_name('spacing_after_155pt_paragraph')
+        self.assertEqual(CssUnit(15.5, 'pt'), style.margin_bottom)
+
+    def test_spacing_after_auto_before_18pt_paragraph(self):
+        style = self.get_parsed_style_by_name('spacing_after_auto_before_18pt_paragraph')
+        self.assertIsNone(style.margin_bottom)
+        self.assertEqual(CssUnit(18, 'pt'), style.margin_top)
+
+    def test_spacing_before_18pt_paragraph(self):
+        style = self.get_parsed_style_by_name('spacing_before_18pt_paragraph')
+        self.assertEqual(CssUnit(18, 'pt'), style.margin_top)
+
+    def test_spacing_before_auto_after_6pt_paragraph(self):
+        style = self.get_parsed_style_by_name('spacing_before_auto_after_6pt_paragraph')
+        self.assertEqual(CssUnit(6, 'pt'), style.margin_bottom)
+        self.assertIsNone(style.margin_top)
+
+    def test_spacing_auto_fontsize_72pt_paragraph(self):
+        style = self.get_parsed_style_by_name('spacing_auto_fontsize_72pt_paragraph')
+        self.assertIsNone(style.margin_bottom)
+        self.assertIsNone(style.margin_top)
+        self.assertEqual(CssUnit(72, 'pt'), style.font_size)
+
+    ##########################################################################
+    #                                                                        #
+    # Pagination Control                                                     #
+    #                                                                        #
+    ##########################################################################
+    def test_pagination_keep_lines_together_on_paragraph(self):
+        style = self.get_parsed_style_by_name('pagination_keep_lines_together_on_paragraph')
+        self.assertTrue(style.keep_together)
+
+    def test_pagination_keep_lines_together_off_paragraph(self):
+        style = self.get_parsed_style_by_name('pagination_keep_lines_together_off_paragraph')
+        self.assertFalse(style.keep_together)
+
+    def test_pagination_keep_with_next_on_paragraph(self):
+        style = self.get_parsed_style_by_name('pagination_keep_with_next_on_paragraph')
+        self.assertTrue(style.keep_with_next)
+
+    def test_pagination_keep_with_next_off_paragraph(self):
+        style = self.get_parsed_style_by_name('pagination_keep_with_next_off_paragraph')
+        self.assertFalse(style.keep_with_next)
+
+    def test_pagination_page_break_before_on_paragraph(self):
+        style = self.get_parsed_style_by_name('pagination_page_break_before_on_paragraph')
+        self.assertTrue(style.page_break_before)
+
+    def test_pagination_page_break_before_off_paragraph(self):
+        style = self.get_parsed_style_by_name('pagination_page_break_before_off_paragraph')
+        self.assertFalse(style.page_break_before)
+
+    def test_pagination_widow_control_off_paragraph(self):
+        style = self.get_parsed_style_by_name('pagination_widow_control_off_paragraph')
+        self.assertFalse(style.widows_control)
+
+    def test_pagination_widow_control_on_paragraph(self):
+        style = self.get_parsed_style_by_name('pagination_widow_control_on_paragraph')
+        self.assertTrue(style.widows_control)

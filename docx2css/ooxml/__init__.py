@@ -8,9 +8,9 @@ class DocxStyleLookup(etree.PythonElementClassLookup):
     def lookup(self, doc, element):
         from . import styles, tables
         style_mapping = {
-            'character': styles.CharacterStyle,
-            'numbering': styles.NumberingStyle,
-            'paragraph': styles.ParagraphStyle,
+            'character': styles.DocxCharacterStyle,
+            'numbering': styles.DocxNumberingStyle,
+            'paragraph': styles.DocxParagraphStyle,
             'table': styles.DocxTableStyle,
         }
         style_tag = f"{{{NAMESPACES['w']}}}style"

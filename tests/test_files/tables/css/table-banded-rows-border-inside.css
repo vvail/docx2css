@@ -1,6 +1,8 @@
 table.table-banded-rows-border-inside {
     border-collapse: collapse;
     border-style: hidden;
+    line-height: 1;
+    margin-bottom: 0;
 }
 table.table-banded-rows-border-inside tr:nth-child(4n+1) td, table.table-banded-rows-border-inside tr:nth-child(4n+2) td {
     background-color: #FF0;

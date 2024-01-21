@@ -1,10 +1,10 @@
 p.allegations-L2:before {
-    text-indent: -0.5in;
     font-weight: normal;
     font-style: normal;
     content: counter(allegations-L1, decimal) "." counter(allegations-L2, decimal) ".";
     counter-increment: allegations-L2;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.5in;
     display: inline-block;
 }
 p.allegations-L2 {

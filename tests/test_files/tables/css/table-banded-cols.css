@@ -1,3 +1,7 @@
+table.table-banded-cols {
+    line-height: 1;
+    margin-bottom: 0;
+}
 table.table-banded-cols tr td:nth-child(4n+1), table.table-banded-cols tr td:nth-child(4n+2) {
     background-color: #FF0;
 }

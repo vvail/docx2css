@@ -3,12 +3,18 @@
 Given a Word (docx) document, _docx2css_ will produce a "clean" CSS stylesheet.
 
 
+## Status
+
+This project is experimental. The API will change without notice. It should not
+be used for production.
+
+
 ## Basic Usage
 
 ```python
 import docx2css
 stylesheet = docx2css.open_docx('path/to/word_file.docx') 
-print(stylesheet.cssText)
+print(docx2css.to_string(stylesheet))
 ```
 
 ## Supported Run Properties

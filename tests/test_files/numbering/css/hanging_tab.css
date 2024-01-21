@@ -1,8 +1,8 @@
 p.hangingtab:before {
-    text-indent: -0.5in;
     content: counter(hanginglist-L0, decimal) ")";
     counter-increment: hanginglist-L0;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.5in;
     display: inline-block;
 }
 p.hangingtab {

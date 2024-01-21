@@ -1,3 +1,7 @@
+table.table-first-row {
+    line-height: 1;
+    margin-bottom: 0;
+}
 table.table-first-row tr:first-of-type td {
     font-style: italic;
     white-space: nowrap;

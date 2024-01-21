@@ -3,13 +3,7 @@
     margin: 1in 1in 1in 1in;
     }
 @media screen {
-    html {
-        background-color: gainsboro;
-    }
     body {
-        background-color: white;
-        border: 1px darkgray solid;
-        box-shadow: 1rem 0.5rem 1rem rgba(0, 0, 0, 0.15);
         max-width: 6.5in;
         margin: 1em auto;
         padding: 1in 1in 1in 1in;
@@ -17,11 +11,12 @@
 }
 body {
     font-family: "Times New Roman", PMingLiU, serif;
+    counter-reset: counter1-L0 counter1-L1 counter1-L2 counter2-L0 resolutions-L0 resolutions-L1 resolutions-L2;
 }
 p, h1, h2, h3 {
-    text-align: justify;
     font-family: "Bell MT";
     font-size: 12pt;
+    text-align: justify;
 }
 h1 {
     break-after: avoid;
@@ -29,37 +24,30 @@ h1 {
     margin-top: 0;
 }
 h2 {
+    font-weight: bold;
     break-after: avoid;
     margin-top: 24pt;
-    font-weight: bold;
 }
 h3 {
+    font-weight: bold;
     break-after: avoid;
     margin-bottom: 12pt;
-    margin-top: 18pt;
     margin-left: 0.5in;
-    font-weight: bold;
-}
-table {
-    margin-left: 0;
-}
-table td {
-    padding-bottom: 0;
-    padding-left: 5.4pt;
-    padding-right: 5.4pt;
-    padding-top: 0;
+    margin-top: 18pt;
 }
 p.align-right {
     text-align: end;
 }
 p.allegations-L1:before {
-    text-indent: -0.5in;
+    text-transform: none;
     font-weight: normal;
     font-style: normal;
-    text-transform: none;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: counter(counter1-L0, decimal) ".";
     counter-increment: counter1-L0;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.5in;
     display: inline-block;
 }
 p.allegations-L1 {
@@ -69,12 +57,14 @@ p.allegations-L1 {
     counter-reset: counter1-L1;
 }
 p.allegations-L2:before {
-    text-indent: -0.5in;
     font-weight: normal;
     font-style: normal;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: counter(counter1-L0, decimal) "." counter(counter1-L1, decimal);
     counter-increment: counter1-L1;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.5in;
     display: inline-block;
 }
 p.allegations-L2 {
@@ -84,12 +74,14 @@ p.allegations-L2 {
     counter-reset: counter1-L2;
 }
 p.allegations-L3:before {
-    text-indent: -0.5in;
     font-weight: normal;
     font-style: normal;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: counter(counter1-L0, decimal) "." counter(counter1-L1, decimal) "." counter(counter1-L2, decimal);
     counter-increment: counter1-L2;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.5in;
     display: inline-block;
 }
 p.allegations-L3 {
@@ -98,14 +90,34 @@ p.allegations-L3 {
     margin-left: 1.5in;
     counter-reset: counter1-L3;
 }
+p.signature-date, p.assermentation-date, p.signature-ligne, p.assermentation-ligne {
+    break-after: avoid;
+    margin-left: 3.25in;
+    margin-top: 36pt;
+}
 p.assermentation-date {
-    margin-top: 24pt;
     margin-left: 0;
     margin-right: 3.25in;
+    margin-top: 24pt;
+}
+p.signature-ligne, p.assermentation-ligne {
+    border-bottom-style: solid;
+    border-bottom-width: 1.5pt;
+    padding-bottom: 1pt;
+    font-family: "Monotype Corsiva";
+    font-size: 16pt;
+    margin-bottom: 0;
+    margin-top: 24pt;
 }
 p.assermentation-ligne {
     margin-left: 0;
     margin-right: 3.25in;
+}
+p.signature-nom, p.assermentation-nom {
+    font-weight: bold;
+    break-after: avoid;
+    margin-bottom: 0;
+    margin-top: 0;
 }
 p.assermentation-nom {
     margin-right: 3.25in;
@@ -114,17 +126,17 @@ p.center {
     text-align: center;
 }
 p.citation {
+    font-size: 11pt;
+    font-style: italic;
     margin-left: 0.5in;
     margin-right: 0.5in;
-    font-style: italic;
-    font-size: 11pt;
 }
 p.conclusions {
     margin-left: 0.5in;
 }
 p.en-tete-designation {
-    text-align: end;
     font-weight: bold;
+    text-align: end;
 }
 p.en-tete-ligne {
     border-bottom-style: solid;
@@ -134,35 +146,37 @@ p.en-tete-ligne {
 }
 p.en-tete-nom {
     margin-bottom: 0;
-    margin-top: 0;
     margin-left: 1in;
-    text-indent: -1in;
-}
-p.endos-ligne {
-    border-bottom-style: solid;
-    border-bottom-width: 0.5pt;
-    padding-bottom: 1pt;
-    margin-left: -0.08in;
-    margin-right: -0.08in;
-    font-size: 1pt;
-}
-p.endos-no-space-center-bold {
-    text-align: center;
-    font-weight: bold;
-}
-p.endos-no-space, p.endos-no-space-center-bold {
-    margin-bottom: 0;
     margin-top: 0;
+    text-indent: -1in;
 }
 p.endos-normal, p.endos-ligne, p.endos-no-space, p.endos-no-space-center-bold {
     margin-bottom: 8pt;
     margin-top: 8pt;
 }
+p.endos-ligne {
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+    padding-bottom: 1pt;
+    font-size: 1pt;
+    margin-left: -0.08in;
+    margin-right: -0.08in;
+}
+p.endos-no-space, p.endos-no-space-center-bold {
+    margin-bottom: 0;
+    margin-top: 0;
+}
+p.endos-no-space-center-bold {
+    font-weight: bold;
+    text-align: center;
+}
 p.enum:before {
-    text-indent: -0.2in;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: counter(counter2-L0, lower-alpha) ")";
     counter-increment: counter2-L0;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.2in;
     display: inline-block;
 }
 p.enum {
@@ -178,27 +192,29 @@ p.float {
 p.ligne-15 {
     border-bottom-style: solid;
     border-bottom-width: 1.5pt;
+    font-size: 1pt;
     margin-bottom: 12pt;
     margin-top: 11pt;
-    font-size: 1pt;
-}
-p.no-space-center-bold {
-    text-align: center;
-    font-weight: bold;
 }
 p.no-space, p.no-space-center-bold, p.no-space-align-right {
     margin-bottom: 0;
     margin-top: 0;
 }
+p.no-space-center-bold {
+    font-weight: bold;
+    text-align: center;
+}
 p.resolution-L1:before {
-    text-indent: -0.3in;
-    font-family: Symbol;
-    font-weight: normal;
-    font-style: normal;
     text-transform: none;
+    font-weight: normal;
+    font-family: Symbol;
+    font-style: normal;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: "\f0b7";
     counter-increment: resolutions-L0;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.3in;
     display: inline-block;
 }
 p.resolution-L1 {
@@ -208,13 +224,15 @@ p.resolution-L1 {
     counter-reset: resolutions-L1;
 }
 p.resolution-L2:before {
-    text-indent: -0.3in;
-    font-family: "Courier New";
     font-weight: normal;
+    font-family: "Courier New";
     font-style: normal;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: "\006f";
     counter-increment: resolutions-L1;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.3in;
     display: inline-block;
 }
 p.resolution-L2 {
@@ -224,13 +242,15 @@ p.resolution-L2 {
     counter-reset: resolutions-L2;
 }
 p.resolution-L3:before {
-    text-indent: -0.3in;
-    font-family: Wingdings;
     font-weight: normal;
+    font-family: Wingdings;
     font-style: normal;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: "\f0a7";
     counter-increment: resolutions-L2;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.3in;
     display: inline-block;
 }
 p.resolution-L3 {
@@ -242,46 +262,35 @@ p.resolution-L3 {
 p.retrait {
     margin-left: 0.5in;
 }
-p.signature-date, p.assermentation-date, p.signature-ligne, p.assermentation-ligne {
-    break-after: avoid;
-    margin-top: 36pt;
-    margin-left: 3.25in;
-}
-p.signature-ligne, p.assermentation-ligne {
-    border-bottom-style: solid;
-    border-bottom-width: 1.5pt;
-    padding-bottom: 1pt;
-    margin-bottom: 0;
-    margin-top: 24pt;
-    font-family: "Monotype Corsiva";
-    font-size: 16pt;
-}
-p.signature-nom, p.assermentation-nom {
-    break-after: avoid;
-    margin-bottom: 0;
-    margin-top: 0;
-    font-weight: bold;
-}
 p.EnvelopeAddress {
-    margin-bottom: 0;
-    margin-top: 0;
-    margin-left: 2in;
-    text-align: start;
     font-family: Arial;
+    margin-bottom: 0;
+    margin-left: 2in;
+    margin-top: 0;
+    text-align: start;
 }
 p.no-space-align-right {
     text-align: end;
 }
 p.signature-employeur {
+    font-weight: bold;
     break-after: avoid;
     margin-bottom: 0;
     margin-top: 36pt;
-    font-weight: bold;
 }
 p.signature-espace {
+    font-family: "Monotype Corsiva";
+    font-size: 14pt;
     break-after: avoid;
     margin-bottom: 0;
     margin-top: 30pt;
-    font-family: "Monotype Corsiva";
-    font-size: 14pt;
+}
+table {
+    margin-left: 0;
+}
+table td {
+    padding-bottom: 0;
+    padding-left: 5.4pt;
+    padding-right: 5.4pt;
+    padding-top: 0;
 }

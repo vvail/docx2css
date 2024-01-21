@@ -3,13 +3,7 @@
     margin: 0.5in 0.75in 0.5in 1.5in;
     }
 @media screen {
-    html {
-        background-color: gainsboro;
-    }
     body {
-        background-color: white;
-        border: 1px darkgray solid;
-        box-shadow: 1rem 0.5rem 1rem rgba(0, 0, 0, 0.15);
         max-width: 6.25in;
         margin: 1em auto;
         padding: 0.5in 0.75in 0.5in 1.5in;
@@ -18,95 +12,105 @@
 body {
     font-family: Calibri, sans-serif;
     font-size: 11pt;
+    counter-reset: counter0-L0 counter0-L1 counter0-L2 counter1-L0 counter1-L2 counter1-L3 counter1-L4 counter1-L5;
     line-height: 1.08;
     margin-bottom: 8pt;
 }
-p, h1, h2, h3 {
-    line-height: 1;
-    text-align: justify;
-    font-family: "Times New Roman", serif;
+body:before {
+    line-height: 1.08;
+    margin-bottom: 8pt;
+}
+span.Heading1Char {
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    font-size: 14pt;
+}
+span.Heading2Char {
+    text-transform: uppercase;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
     font-size: 12pt;
 }
+span.Heading3Char {
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    font-size: 12pt;
+}
+p, h1, h2, h3 {
+    font-family: "Times New Roman", serif;
+    font-size: 12pt;
+    line-height: 1;
+    text-align: justify;
+}
 h1:before {
+    border-bottom-style: solid;
+    border-bottom-width: 0.5pt;
+    padding-bottom: 6pt;
+    border-top-style: solid;
+    border-top-width: 0.5pt;
+    padding-top: 6pt;
+    break-inside: avoid;
+    break-after: avoid;
+    text-align: start;
     text-indent: 0;
     counter-increment: counter1-L0;
-    text-align: left;
     margin-right: 0;
     display: inline-block;
 }
 h1 {
-    break-after: avoid;
-    break-inside: avoid;
-    border-top-style: solid;
-    border-top-width: 0.5pt;
-    padding-top: 6pt;
+    font-weight: bold;
     border-bottom-style: solid;
     border-bottom-width: 0.5pt;
     padding-bottom: 6pt;
+    border-top-style: solid;
+    border-top-width: 0.5pt;
+    padding-top: 6pt;
+    font-family: Arial, sans-serif;
+    font-size: 14pt;
+    break-inside: avoid;
+    break-after: avoid;
     margin-left: -0.25in;
     text-align: center;
-    font-family: Arial, sans-serif;
-    font-weight: bold;
-    font-size: 14pt;
     counter-reset: counter1-L1;
 }
 h2 {
-    break-after: avoid;
-    break-inside: avoid;
-    margin-bottom: 12pt;
-    margin-top: 24pt;
-    margin-left: -0.25in;
-    text-align: start;
-    font-family: Arial, sans-serif;
-    font-weight: bold;
     text-transform: uppercase;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    break-inside: avoid;
+    break-after: avoid;
+    margin-bottom: 12pt;
+    margin-left: -0.25in;
+    margin-top: 24pt;
+    text-align: start;
 }
 h3:before {
-    text-indent: -0.25in;
+    break-inside: avoid;
+    break-after: avoid;
+    margin-bottom: 12pt;
+    margin-top: 18pt;
     content: counter(counter1-L2, decimal) ".";
     counter-increment: counter1-L2;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.25in;
     display: inline-block;
 }
 h3 {
-    break-after: avoid;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
     break-inside: avoid;
+    break-after: avoid;
     margin-bottom: 12pt;
     margin-top: 18pt;
-    font-family: Arial, sans-serif;
-    font-weight: bold;
     margin-left: 0.5in;
     counter-reset: counter1-L3;
 }
-table {
-    margin-left: 0;
-}
-table td {
-    padding-bottom: 0;
-    padding-left: 5.4pt;
-    padding-right: 5.4pt;
-    padding-top: 0;
-}
-span.Heading1Char {
-    font-family: Arial, sans-serif;
-    font-weight: bold;
-    font-size: 14pt;
-}
-span.Heading2Char {
-    font-family: Arial, sans-serif;
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 12pt;
-}
-span.Heading3Char {
-    font-family: Arial, sans-serif;
-    font-weight: bold;
-    font-size: 12pt;
-}
 p.allegations-L1:before {
-    text-indent: 0;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     counter-increment: counter1-L3;
-    text-align: left;
+    text-align: start;
+    text-indent: 0;
     margin-right: 0;
     display: inline-block;
 }
@@ -117,10 +121,10 @@ p.allegations-L1, p.allegations-L2, p.allegations-L3 {
     counter-reset: counter1-L4;
 }
 p.allegations-L2:before {
-    text-indent: -0.25in;
     content: "(" counter(counter1-L4, lower-alpha) ")";
     counter-increment: counter1-L4;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.25in;
     display: inline-block;
 }
 p.allegations-L2, p.allegations-L3 {
@@ -128,10 +132,10 @@ p.allegations-L2, p.allegations-L3 {
     counter-reset: counter1-L5;
 }
 p.allegations-L3:before {
-    text-indent: -0.25in;
     content: "(" counter(counter1-L5, lower-roman) ")";
     counter-increment: counter1-L5;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.25in;
     display: inline-block;
 }
 p.allegations-L3 {
@@ -139,82 +143,100 @@ p.allegations-L3 {
     counter-reset: counter1-L6;
 }
 p.signature-date, p.signature-ligne, p.signature-nom {
+    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
     break-after: avoid;
     margin-top: 18pt;
-    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
 }
 p.signature-ligne {
     border-bottom-style: solid;
     border-bottom-width: 0.75pt;
     padding-bottom: 1pt;
-    margin-bottom: 0;
     font-family: "Monotype Corsiva", cursive;
     font-size: 16pt;
+    margin-bottom: 0;
 }
 p.signature-nom {
     margin-bottom: 0;
     margin-top: 0;
 }
 p.resolution-L1:before {
-    text-indent: -0.25in;
-    font-family: Symbol, serif;
-    font-weight: normal;
-    font-style: normal;
     text-transform: none;
+    font-weight: normal;
+    font-family: Symbol, serif;
+    font-style: normal;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: "\f0b7";
     counter-increment: counter0-L0;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.25in;
     display: inline-block;
 }
 p.resolution-L1 {
+    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
     margin-bottom: 12pt;
     margin-top: 12pt;
-    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
     margin-left: 0.25in;
     counter-reset: counter0-L1;
 }
 p.resolution-L2:before {
-    text-indent: -0.25in;
-    font-family: "Courier New", monospace;
     font-weight: normal;
+    font-family: "Courier New", monospace;
     font-style: normal;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: "\006f";
     counter-increment: counter0-L1;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.25in;
     display: inline-block;
 }
 p.resolution-L2 {
+    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
     margin-bottom: 12pt;
     margin-top: 12pt;
-    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
     margin-left: 0.5in;
     counter-reset: counter0-L2;
 }
 p.resolution-L3:before {
-    text-indent: -0.25in;
-    font-family: Wingdings;
     font-weight: normal;
+    font-family: Wingdings;
     font-style: normal;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: "\f0a7";
     counter-increment: counter0-L2;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.25in;
     display: inline-block;
 }
 p.resolution-L3 {
+    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
     margin-bottom: 12pt;
     margin-top: 12pt;
-    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
     margin-left: 0.75in;
     counter-reset: counter0-L3;
 }
 p.no-space, p.no-space-center-bold {
+    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
     margin-bottom: 0;
     margin-top: 0;
-    font-family: PMingLiU, 新細明體, "Times New Roman", serif;
 }
 p.no-space-center-bold {
-    text-align: center;
     font-weight: bold;
+    text-align: center;
+}
+p.retrait {
+    margin-left: 0.25in;
+}
+table {
+    margin-left: 0;
+}
+table td {
+    padding-bottom: 0;
+    padding-left: 5.4pt;
+    padding-right: 5.4pt;
+    padding-top: 0;
 }
 table.TableGrid {
     border-collapse: collapse;
@@ -227,6 +249,8 @@ table.TableGrid {
     border-right-width: 0.5pt;
     border-top-style: solid;
     border-top-width: 0.5pt;
+    line-height: 1;
+    margin-bottom: 0;
 }
 table.TableGrid td {
     border-bottom-style: solid;
@@ -235,7 +259,4 @@ table.TableGrid td {
 table.TableGrid td + td {
     border-left-style: solid;
     border-left-width: 0.5pt;
-}
-p.retrait {
-    margin-left: 0.25in;
 }

@@ -3,13 +3,7 @@
     margin: 1in 1in 1in 1in;
     }
 @media screen {
-    html {
-        background-color: gainsboro;
-    }
     body {
-        background-color: white;
-        border: 1px darkgray solid;
-        box-shadow: 1rem 0.5rem 1rem rgba(0, 0, 0, 0.15);
         max-width: 6.5in;
         margin: 1em auto;
         padding: 1in 1in 1in 1in;
@@ -17,26 +11,29 @@
 }
 body {
     font-family: "Times New Roman", serif;
+    counter-reset: counter0-L0 counter0-L1 counter0-L2 counter0-L3 counter1-L0 counter1-L1 counter1-L2 counter3-L0;
 }
 p, h1, h2, h3 {
-    text-align: justify;
     font-size: 12pt;
+    text-align: justify;
 }
 h1 {
+    font-weight: bold;
+    font-size: 14pt;
     break-after: avoid;
     margin-top: 24pt;
     text-align: center;
-    font-weight: bold;
-    font-size: 14pt;
 }
 h2:before {
-    text-indent: -0.4in;
+    text-transform: none;
     font-weight: normal;
     font-style: normal;
-    text-transform: none;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: counter(counter0-L0, decimal) ".";
     counter-increment: counter0-L0;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.4in;
     display: inline-block;
 }
 h2 {
@@ -46,30 +43,23 @@ h2 {
     counter-reset: counter0-L1;
 }
 h3 {
-    break-after: avoid;
-    margin-top: 12pt;
-    margin-left: 0.4in;
     font-weight: bold;
-}
-table {
-    margin-left: 0;
-}
-table td {
-    padding-bottom: 0;
-    padding-left: 5.4pt;
-    padding-right: 5.4pt;
-    padding-top: 0;
+    break-after: avoid;
+    margin-left: 0.4in;
+    margin-top: 12pt;
 }
 p.align-right {
     text-align: end;
 }
 p.allegations-L1:before {
-    text-indent: -0.4in;
     font-weight: normal;
     font-style: normal;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: counter(counter0-L0, decimal) "." counter(counter0-L1, decimal);
     counter-increment: counter0-L1;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.4in;
     display: inline-block;
 }
 p.allegations-L1, p.allegations-L2, p.allegations-L3 {
@@ -79,12 +69,12 @@ p.allegations-L1, p.allegations-L2, p.allegations-L3 {
     counter-reset: counter0-L2;
 }
 p.allegations-L2:before {
-    text-indent: -0.4in;
     font-weight: normal;
     font-style: normal;
     content: counter(counter0-L0, decimal) "." counter(counter0-L1, decimal) "." counter(counter0-L2, decimal);
     counter-increment: counter0-L2;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.4in;
     display: inline-block;
 }
 p.allegations-L2, p.allegations-L3 {
@@ -92,10 +82,10 @@ p.allegations-L2, p.allegations-L3 {
     counter-reset: counter0-L3;
 }
 p.allegations-L3:before {
-    text-indent: -0.25in;
     content: counter(counter0-L0, decimal) "." counter(counter0-L1, decimal) "." counter(counter0-L2, decimal) "." counter(counter0-L3, decimal) ".";
     counter-increment: counter0-L3;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.25in;
     display: inline-block;
 }
 p.allegations-L3 {
@@ -106,16 +96,18 @@ p.center {
     text-align: center;
 }
 p.citation {
+    font-size: 11pt;
+    font-style: italic;
     margin-left: 0.5in;
     margin-right: 0.5in;
-    font-style: italic;
-    font-size: 11pt;
 }
 p.enum:before {
-    text-indent: -0.2in;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: counter(counter3-L0, lower-alpha) ")";
     counter-increment: counter3-L0;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.2in;
     display: inline-block;
 }
 p.enum {
@@ -132,24 +124,26 @@ p.ligne-15 {
     border-bottom-style: solid;
     border-bottom-width: 0.75pt;
     padding-bottom: 1pt;
+    font-size: 1pt;
     margin-bottom: 24pt;
     margin-top: 6pt;
-    font-size: 1pt;
-}
-p.no-space-center-bold {
-    text-align: center;
-    font-weight: bold;
 }
 p.no-space, p.no-space-center-bold {
     margin-bottom: 0;
     margin-top: 0;
 }
+p.no-space-center-bold {
+    font-weight: bold;
+    text-align: center;
+}
 p.resolution-L1:before {
-    text-indent: -0.3in;
     font-family: Symbol, serif;
+    margin-bottom: 12pt;
+    margin-top: 12pt;
     content: "\f0b7";
     counter-increment: counter1-L0;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.3in;
     display: inline-block;
 }
 p.resolution-L1, p.resolution-L2, p.resolution-L3 {
@@ -159,11 +153,11 @@ p.resolution-L1, p.resolution-L2, p.resolution-L3 {
     counter-reset: counter1-L1;
 }
 p.resolution-L2:before {
-    text-indent: -0.3in;
     font-family: "Courier New", monospace;
     content: "\006f";
     counter-increment: counter1-L1;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.3in;
     display: inline-block;
 }
 p.resolution-L2 {
@@ -171,11 +165,11 @@ p.resolution-L2 {
     counter-reset: counter1-L2;
 }
 p.resolution-L3:before {
-    text-indent: -0.3in;
     font-family: Wingdings;
     content: "\f0a7";
     counter-increment: counter1-L2;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.3in;
     display: inline-block;
 }
 p.resolution-L3 {
@@ -190,13 +184,22 @@ p.signature-date {
     margin-top: 18pt;
 }
 p.signature-ligne {
-    break-after: avoid;
-    break-inside: avoid;
     border-bottom-style: solid;
     border-bottom-width: 0.75pt;
     padding-bottom: 1pt;
-    margin-bottom: 0;
-    margin-top: 18pt;
     font-family: "Monotype Corsiva", PMingLiU, 新細明體, serif, cursive;
     font-size: 16pt;
+    break-inside: avoid;
+    break-after: avoid;
+    margin-bottom: 0;
+    margin-top: 18pt;
+}
+table {
+    margin-left: 0;
+}
+table td {
+    padding-bottom: 0;
+    padding-left: 5.4pt;
+    padding-right: 5.4pt;
+    padding-top: 0;
 }

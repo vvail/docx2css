@@ -1,7 +1,7 @@
 p.list-5-parent-paragraph:before {
-    text-indent: 0;
     counter-increment: start-at-5-list-L0;
-    text-align: left;
+    text-align: start;
+    text-indent: 0;
     display: inline-block;
 }
 p.list-5-parent-paragraph {

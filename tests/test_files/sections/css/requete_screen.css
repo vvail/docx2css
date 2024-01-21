@@ -1,11 +1,5 @@
 @media screen {
-    html {
-        background-color: gainsboro;
-    }
     body {
-        background-color: white;
-        border: 1px darkgray solid;
-        box-shadow: 1rem 0.5rem 1rem rgba(0, 0, 0, 0.15);
         max-width: 6.5in;
         margin: 1em auto;
         padding: 1in 1in 1in 1in;

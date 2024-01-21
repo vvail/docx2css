@@ -3,13 +3,7 @@
     margin: 0.3in 1in 0.3in 6.5in;
     }
 @media screen {
-    html {
-        background-color: gainsboro;
-    }
     body {
-        background-color: white;
-        border: 1px darkgray solid;
-        box-shadow: 1rem 0.5rem 1rem rgba(0, 0, 0, 0.15);
         max-width: 3.5in;
         margin: 1em auto;
         padding: 0.3in 1in 0.3in 6.5in;
@@ -17,52 +11,45 @@
 }
 body {
     font-family: "Times New Roman", PMingLiU, 新細明體, serif;
+    counter-reset: counter5-L0;
 }
 p, h1, h2, h3 {
+    font-family: Arial, sans-serif;
+    font-size: 12pt;
     line-height: 12pt;
     margin-bottom: 12pt;
     margin-top: 12pt;
-    font-family: Arial, sans-serif;
-    font-size: 12pt;
 }
 h1:before {
-    text-indent: 0;
+    text-transform: none;
     font-weight: normal;
     font-style: normal;
-    text-transform: none;
+    break-after: avoid;
+    text-align: start;
     counter-increment: counter5-L0;
-    text-align: left;
+    text-indent: 0;
     margin-right: 0;
     display: inline-block;
 }
 h1 {
+    font-weight: bold;
+    font-family: Arial, sans-serif;
     break-after: avoid;
     text-align: center;
-    font-family: Arial, sans-serif;
-    font-weight: bold;
     margin-left: 0;
     counter-reset: counter5-L1;
 }
 h2 {
+    font-weight: bold;
     break-after: avoid;
     margin-bottom: 5pt;
     margin-top: 24pt;
-    font-weight: bold;
 }
 h3 {
-    break-after: avoid;
-    margin-top: 18pt;
-    margin-left: 0.5in;
     font-weight: bold;
-}
-table {
-    margin-left: 0;
-}
-table td {
-    padding-bottom: 0;
-    padding-left: 5.4pt;
-    padding-right: 5.4pt;
-    padding-top: 0;
+    break-after: avoid;
+    margin-left: 0.5in;
+    margin-top: 18pt;
 }
 p.align-right {
     text-align: end;
@@ -79,19 +66,28 @@ p.center {
 p.ligne-15 {
     border-bottom-style: solid;
     border-bottom-width: 0.75pt;
-    line-height: 1pt;
     font-size: 1pt;
-}
-p.no-space-center-bold {
-    text-align: center;
-    font-weight: bold;
+    line-height: 1pt;
 }
 p.no-space, p.no-space-center-bold {
     margin-bottom: 0;
     margin-top: 0;
 }
+p.no-space-center-bold {
+    font-weight: bold;
+    text-align: center;
+}
 p.tab {
     margin-bottom: 5pt;
-    margin-top: 5pt;
     margin-left: 0.25in;
+    margin-top: 5pt;
+}
+table {
+    margin-left: 0;
+}
+table td {
+    padding-bottom: 0;
+    padding-left: 5.4pt;
+    padding-right: 5.4pt;
+    padding-top: 0;
 }

@@ -1,130 +1,8 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import Optional
 
-import cssutils
-
-from docx2css.utils import CssUnit, PropertyContainer
-
-
-def getter(prop_name):
-    def func(self):
-        impl_getter = getattr(self, f'_get_{prop_name}')
-        return getattr(self, f'_{prop_name}', impl_getter())
-    return func
-
-
-def setter(prop_name):
-    return lambda self, value: setattr(self, f'_{prop_name}', value)
-
-
-INCLUDE_PAGE_RULE = 'include_page_rule'
-SIMULATE_PRINTED_PAGE = 'simulate_printed_page'
-
-
-class PageStyle(ABC):
-
-    height: CssUnit = property(
-        lambda self: getter('height')(self),
-        lambda self, value: setter('height')(self, value),
-    )
-    margin_bottom: CssUnit = property(
-        lambda self: getter('margin_bottom')(self),
-        lambda self, value: setter('margin_bottom')(self, value),
-    )
-    margin_left: CssUnit = property(
-        lambda self: getter('margin_left')(self),
-        lambda self, value: setter('margin_left')(self, value),
-    )
-    margin_right: CssUnit = property(
-        lambda self: getter('margin_right')(self),
-        lambda self, value: setter('margin_right')(self, value),
-    )
-    margin_top: CssUnit = property(
-        lambda self: getter('margin_top')(self),
-        lambda self, value: setter('margin_top')(self, value),
-    )
-    width: CssUnit = property(
-        lambda self: getter('width')(self),
-        lambda self, value: setter('width')(self, value),
-    )
-
-    @abstractmethod
-    def _get_height(self) -> CssUnit:
-        pass
-
-    @abstractmethod
-    def _get_margin_bottom(self) -> CssUnit:
-        pass
-
-    @abstractmethod
-    def _get_margin_left(self) -> CssUnit:
-        pass
-
-    @abstractmethod
-    def _get_margin_right(self) -> CssUnit:
-        pass
-
-    @abstractmethod
-    def _get_margin_top(self) -> CssUnit:
-        pass
-
-    @abstractmethod
-    def _get_width(self) -> CssUnit:
-        pass
-
-    def _css_margin_value(self):
-        top = self.margin_top.inches
-        right = self.margin_right.inches
-        bottom = self.margin_bottom.inches
-        left = self.margin_left.inches
-        return f'{top}in {right}in {bottom}in {left}in'
-
-    def css_style_declaration_print(self):
-        css_style = cssutils.css.CSSStyleDeclaration()
-        css_style['size'] = f'{self.width.inches}in {self.height.inches}in'
-        css_style['margin'] = self._css_margin_value()
-        return css_style
-
-    def css_style_rule_print(self):
-        css_style = self.css_style_declaration_print()
-        return cssutils.css.CSSPageRule(style=css_style)
-
-    def css_style_declaration_screen(self):
-        css_style = cssutils.css.CSSStyleDeclaration()
-        css_style['background-color'] = 'white'
-        css_style['border'] = '1px darkgray solid'
-        css_style['box-shadow'] = '1rem 0.5rem 1rem rgba(0,0,0,0.15)'
-        # Adjust max-width to margins
-        max_width = self.width - self.margin_left - self.margin_right
-        css_style['max-width'] = f'{CssUnit(max_width).inches}in'
-        css_style['margin'] = '1em auto'
-        css_style['padding'] = self._css_margin_value()
-
-        return css_style
-
-    def css_style_rule_screen(self):
-        screen = cssutils.css.CSSMediaRule('screen')
-
-        html_style = cssutils.css.CSSStyleDeclaration()
-        html_style['background-color'] = 'gainsboro'
-        html_rule = cssutils.css.CSSStyleRule('html', html_style)
-        screen.add(html_rule)
-
-        body_style = self.css_style_declaration_screen()
-        body_rule = cssutils.css.CSSStyleRule('body', body_style)
-        screen.add(body_rule)
-        return screen
-
-    def css_style_rules(self, preferences=None):
-        preferences = preferences or {}
-        rules = []
-        if preferences.get(INCLUDE_PAGE_RULE, True):
-            rules.append(self.css_style_rule_print())
-        if preferences.get(SIMULATE_PRINTED_PAGE, False):
-            rules.append(self.css_style_rule_screen())
-
-        return rules
+from docx2css.utils import CssUnit, KeyValueProperty, PropertyContainer
 
 
 @dataclass
@@ -166,10 +44,100 @@ class Border:
 
 
 @dataclass
+class TextDecoration:
+    UNDERLINE = 1
+    LINE_THROUGH = 2
+    line: int = 0
+    color: Optional[str] = None
+    style: Optional[str] = None
+
+    def add_line(self, line_type):
+        self.line ^= line_type
+
+    def del_line(self, line_type):
+        self.line &= ~line_type
+
+    def has_line(self, line_type):
+        return self.line & line_type == line_type
+
+
+@dataclass
 class TextFormatting(PropertyContainer):
+    all_caps: Optional[bool] = None
+    """Specifies that any lowercase characters in this text run shall be
+    formatted for display only as their capital letter character 
+    equivalents. This property does not affect any non-alphabetic 
+    character in this run, and does not change the Unicode character for
+    lowercase text, only the method in which it is displayed.
+    """
+
+    background_color: Optional[str] = None
+    """Specifies the background color of the table.
+
+    Return a hexadecimal color string, eg. '#FF00FF' or None
+    """
+
     bold: Optional[bool] = None
     """Specifies whether the bold property shall be applied to all non-
     complex script characters
+    """
+
+    border: Optional[Border] = None
+    """Specifies information about the border applied to the text in the
+    current span.
+    """
+
+    double_strike: Optional[bool] = None
+    """Specifies that the contents shall be displayed with two 
+    horizontal lines through each character displayed on the line.
+    
+    This element shall not be present with the strike property, since 
+    they are mutually exclusive in terms of appearance.
+    """
+
+    emboss: Optional[bool] = None
+    """Specifies that the contents should be displayed as if embossed, 
+    which makes text appear as if it is raised off the page in relief.
+    
+    This element shall not be present with either the imprint or outline
+    properties , since they are mutually exclusive in terms of 
+    appearance.
+    """
+
+    font_color: Optional[str] = None
+    """Specifies the color of the font
+    
+    Returns a hexadecimal color string, eg. '#FF00FF' or None
+    """
+
+    font_family: Optional[str] = None
+    """Get a comma-separated list of font faces"""
+
+    font_kerning: Optional[bool] = None
+    """Specifies whether font kerning shall be applied"""
+
+    font_size: Optional[CssUnit] = None
+    """Specifies the font size"""
+
+    highlight: Optional[str] = None
+    """Specifies a highlighting color which is applied as a background 
+    behind the contents.
+
+    If the content has any background color specified, then the 
+    background color shall be superseded by the highlighting color when 
+    the contents of are displayed.
+    
+    Value is the name of a color
+    """
+
+    imprint: Optional[bool] = None
+    """Specifies that the contents should be displayed as if imprinted, 
+    which makes text appear to be imprinted or pressed into page (also 
+    referred to as 'engrave').
+    
+    This element shall not be present with either the emboss or outline 
+    properties, since they are mutually exclusive in terms of 
+    appearance.
     """
 
     italics: Optional[bool] = None
@@ -179,49 +147,164 @@ class TextFormatting(PropertyContainer):
     formatting applied at previous level in the style hierarchy.
     """
 
+    letter_spacing: Optional[CssUnit] = None
+    """Specifies the amount of character pitch which shall be added or 
+    removed after each character before the following character is 
+    rendered in the document.
+    """
+
+    outline: Optional[bool] = None
+    """Specifies that the contents of this run should be displayed as if
+    they have an outline, by drawing a one pixel wide border around the 
+    inside and outside borders of each character glyph in the run.
+    """
+
+    position: Optional[CssUnit] = None
+    """Specifies the vertical position of the text in relation to the
+    baseline. Positive values for raised text and negative values for
+    lowered text
+    """
+
+    shadow: Optional[bool] = None
+    """Specifies that the contents of this run shall be displayed as if 
+    each character has a shadow.
+    """
+
+    small_caps: Optional[bool] = None
+    """Specifies that all small letter characters in this text run shall
+    be formatted for display only as their capital letter character 
+    equivalents in a font size two points smaller than the actual font 
+    size specified for this text. This property does not affect any non-
+    alphabetic character in this run, and does not change the Unicode
+    character for lowercase text, only the method in which it is 
+    displayed. If this font cannot be made two point smaller than the 
+    current size, then it shall be displayed as the smallest possible 
+    font size in capital letters.
+    """
+
+    strike: Optional[bool] = None
+    """Specifies that the contents shall be displayed with a single 
+    horizontal line through the center of the line.
+    
+    This element shall not be present with the double_strike property, 
+    since they are mutually exclusive in terms of appearance.
+    """
+
+    underline: Optional[TextDecoration] = None
+    """Specifies that the contents should be displayed along with an 
+    underline appearing directly below the character height.
+    """
+
+    vertical_align: Optional[str] = None
+    """Specifies the alignment which shall be applied to the contents in
+    relation to the default appearance of the text. This allows the text
+    to be repositioned as subscript or superscript.
+    
+    Possible values are:
+        * baseline
+        * superscript
+        * subscript
+    """
+
+    visible: Optional[bool] = None
+    """Specifies whether the contents shall be hidden from display at 
+    display time in a document. Note: The setting should affect the 
+    normal display of text, but an application can have settings to
+    force hidden text to be displayed.
+    """
+
+    def get_properties(self, subclass=None, active=False):
+        if subclass is None:
+            subclass = self
+        for f in sorted(fields(subclass), key=lambda x: x.name):
+            prop = KeyValueProperty(f.name, getattr(self, f.name))
+            if active and prop.value is None:
+                continue
+            else:
+                yield prop
+
+    def text_formatting_fields(self, active=False):
+        return self.get_properties(TextFormatting, active)
+
     # Not implemented:
     #   * bCs (Complex Script Bold) §2.3.2.2
-    # bdr (Text Border) §2.3.2.3
-    # caps (Display All Characters As Capital Letters) §2.3.2.4
-    # color (Run Content Color) §2.3.2.5
     #   * cs (Use Complex Script Formatting on Run) §2.3.2.6
-    # dstrike (Double Strikethrough) §2.3.2.7
     #   * eastAsianLayout (East Asian Typography Settings) §2.3.2.8
     #   * effect (Animated Text Effect) §2.3.2.9
     # em (Emphasis Mark) §2.3.2.10
-    # emboss (Embossing) §2.3.2.11
     # fitText (Manual Run Width) §2.3.2.12
-    # highlight (Text Highlighting) §2.3.2.13
     #   * iCs (Complex Script Italics) §2.3.2.15
-    # imprint (Imprinting) §2.3.2.16
-    # kern (Font Kerning) §2.3.2.17
     #   * lang (Languages for Run Content) §2.3.2.18
     #   * noProof (Do Not Check Spelling or Grammar) §2.3.2.19
     #   * oMath (Office Open XML Math) §2.3.2.20
-    # outline (Display Character Outline) §2.3.2.21
-    # position (Vertically Raised or Lowered Text) §2.3.2.22
-    # rFonts (Run Fonts) §2.3.2.24
     #   * rPrChange (Revision Information for Run Properties) §2.13.5.32
     #   * rStyle (Referenced Character Style) §2.3.2.27
-    # rtl (Right To Left Text) §2.3.2.28
-    # shadow (Shadow) §2.3.2.29
-    # shd (Run Shading) §2.3.2.30
-    # smallCaps (Small Caps) §2.3.2.31
+    #   * rtl (Right To Left Text) §2.3.2.28
     #   * snapToGrid (Use Document Grid Settings For Inter-Character Spacing) §2.3.2.32
-    # spacing (Character Spacing Adjustment) §2.3.2.33
-    # specVanish (Paragraph Mark Is Always Hidden) §2.3.2.34
-    # strike (Single Strikethrough) §2.3.2.35
-    # sz (Font Size) §2.3.2.36
+    #   * specVanish (Paragraph Mark Is Always Hidden) §2.3.2.34
     #   * szCs (Complex Script Font Size) §2.3.2.37
-    # u (Underline) §2.3.2.38
-    # vanish (Hidden Text) §2.3.2.39
-    # vertAlign (Subscript/Superscript Text) §2.3.2.40
     # w (Expanded/Compressed Text) §2.3.2.41
     #   * webHidden (Web Hidden Text) §2.3.2.42
 
 
 @dataclass
 class ParagraphFormatting(TextFormatting):
+    border_bottom: Border = None
+    border_left: Border = None
+    border_right: Border = None
+    border_top: Border = None
+
+    keep_together: Optional[bool] = None
+    """Specifies that when rendering in a paginated view, all lines are
+    maintained on a single page whenever possible.
+    """
+
+    keep_with_next: Optional[bool] = None
+    """Specifies that when rendering in a paginated view, the contents 
+    are at least partly rendered on the same page as the following 
+    paragraph whenever possible.
+    """
+
+    counter: Optional['Counter'] = None
+
+    line_height: Optional[CssUnit] = None
+    """Specifies the inter-line spacing which shall be applied to the 
+    contents when it is displayed.
+    
+    If the value is NOT an instance of CssUnit (and is instead and int), 
+    then the value of the line height must be multiplied by the font
+    size.
+    """
+
+    margin_left: Optional[CssUnit] = None
+    margin_right: Optional[CssUnit] = None
+    margin_bottom: Optional[CssUnit] = None
+    margin_top: Optional[CssUnit] = None
+
+    page_break_before: Optional[bool] = None
+    """Specifies that when rendering in a paginated view, the contents 
+    are rendered on the start of a new page in the document.
+    """
+
+    text_align: Optional[str] = None
+    text_indent: Optional[CssUnit] = None
+    widows_control: Optional[bool] = None
+    """Specifies whether a consumer shall prevent a single line of this 
+    paragraph from being displayed on a separate page from the remaining
+    content at display time by moving the line onto the following page.
+    """
+
+    def paragraph_formatting_fields(self, active=False, with_text_fields=True):
+        all_fields = set(fields(ParagraphFormatting))
+        if not with_text_fields:
+            all_fields -= set(fields(TextFormatting))
+        for f in sorted(all_fields, key=lambda x: x.name):
+            prop = KeyValueProperty(f.name, getattr(self, f.name))
+            if active and prop.value is None:
+                continue
+            else:
+                yield prop
+
     # adjustRightInd (Automatically Adjust Right Indent When Using Document Grid) §2.3.1.1
     # autoSpaceDE (Automatically Adjust Spacing of Latin and East Asian Text) §2.3.1.2
     # autoSpaceDN (Automatically Adjust Spacing of East Asian Text and Numbers) §2.3.1.3
@@ -236,7 +319,7 @@ class ParagraphFormatting(TextFormatting):
     # keepNext (Keep Paragraph With Next Paragraph) §2.3.1.15
     # kinsoku (Use East Asian Typography Rules for First and Last Character per Line) §2.3.1.16
     # mirrorIndents (Use Left/Right Indents as Inside/Outside Indents) §2.3.1.18
-    # numPr (Numbering Definition Instance Reference) §2.3.1.19
+    # numPr (NumberingPart Definition Instance Reference) §2.3.1.19
     # outlineLvl (Associated Outline Level) §2.3.1.20
     # overflowPunct (Allow Punctuation to Extent Past Text Extents) §2.3.1.21
     # pageBreakBefore (Start Paragraph on Next Page) §2.3.1.23
@@ -258,7 +341,6 @@ class ParagraphFormatting(TextFormatting):
     # topLinePunct (Compress Punctuation at Start of a Line) §2.3.1.43
     # widowControl (Allow First/Last Line to Display on a Separate Page) §2.3.1.44
     # wordWrap (Allow Line Breaking At Character Level) §2.3.1.45
-    pass
 
 
 @dataclass
@@ -490,17 +572,8 @@ class TableCellProperties(PropertyContainer):
     #   * vMerge (Vertically Merged Cell) §2.4.81
 
 
-class Stylesheet:
-
-    def __init__(self, styles=None):
-        self.styles = styles if styles is not None else {}
-
-    def add_style(self, style):
-        self.styles[style.id] = style
-        if style.parent_id:
-            parent = self.styles.get(style.parent_id, None)
-            style.parent = parent
-            parent.children.append(style)
+class BodyStyle(ParagraphFormatting):
+    type = 'body'
 
 
 @dataclass
@@ -516,6 +589,28 @@ class BaseStyle(PropertyContainer, ABC):
     @abstractmethod
     def type(self):
         pass
+
+    @property
+    def qualified_id(self):
+        return '.'.join(filter(lambda x: x, (self.type, self.id)))
+
+    @property
+    def qualified_name(self):
+        return '.'.join(filter(lambda x: x, (self.type, self.name)))
+
+    @property
+    def qualified_parent_id(self):
+        return '.'.join(filter(lambda x: x, (self.type, self.parent_id)))
+
+
+@dataclass
+class SpanStyle(TextFormatting, BaseStyle):
+    type = 'span'
+
+
+@dataclass
+class ParagraphStyle(ParagraphFormatting, BaseStyle):
+    type = 'p'
 
 
 @dataclass
@@ -543,3 +638,41 @@ class TableStyle(ParagraphFormatting, TableProperties, BaseStyle):
     top_right_cell: Optional[TableConditionalFormatting] = None
     bottom_left_cell: Optional[TableConditionalFormatting] = None
     bottom_right_cell: Optional[TableConditionalFormatting] = None
+
+
+@dataclass
+class CounterList:
+    id: str
+    name: str
+    counters: dict = field(default_factory=dict)
+
+
+@dataclass
+class Counter(ParagraphFormatting):
+    counter_list: CounterList = None
+    name: str = None
+    style: str = 'decimal'
+    start: int = 0
+    text: str = None
+
+    restart: set = field(default_factory=set)
+    """Levels that are restarted at this level"""
+
+    suffix: str = 'tab'
+    """Specifies whether the contents should have 'nothing', a 'tab' or
+    a 'space' appended.
+    """
+
+    justification: str = None
+
+
+@dataclass
+class PageStyle:
+    type = 'page'
+    margin_left: Optional[CssUnit] = None
+    margin_right: Optional[CssUnit] = None
+    margin_bottom: Optional[CssUnit] = None
+    margin_top: Optional[CssUnit] = None
+    page_height: Optional[CssUnit] = None
+    page_orientation: str = 'portrait'
+    page_width: Optional[CssUnit] = None

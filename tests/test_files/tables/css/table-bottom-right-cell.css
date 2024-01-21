@@ -1,3 +1,7 @@
+table.table-bottom-right-cell {
+    line-height: 1;
+    margin-bottom: 0;
+}
 table.table-bottom-right-cell tr:last-of-type td:last-of-type {
     font-style: italic;
 }

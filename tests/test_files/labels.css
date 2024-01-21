@@ -3,13 +3,7 @@
     margin: 0.829861in 0.159722in 0 0.159722in;
     }
 @media screen {
-    html {
-        background-color: gainsboro;
-    }
     body {
-        background-color: white;
-        border: 1px darkgray solid;
-        box-shadow: 1rem 0.5rem 1rem rgba(0, 0, 0, 0.15);
         max-width: 8.180556in;
         margin: 1em auto;
         padding: 0.829861in 0.159722in 0 0.159722in;
@@ -20,11 +14,11 @@ body {
     font-size: 12pt;
 }
 p {
+    font-weight: bold;
+    font-family: "Lucida Sans Typewriter";
     line-height: 15.85pt;
     margin-left: 0.1in;
     margin-right: 0.1in;
-    font-family: "Lucida Sans Typewriter";
-    font-weight: bold;
 }
 table {
     margin-left: 0;

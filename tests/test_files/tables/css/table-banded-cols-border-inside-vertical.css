@@ -1,6 +1,8 @@
 table.table-banded-cols-border-inside-vertical {
     border-collapse: collapse;
     border-style: hidden;
+    line-height: 1;
+    margin-bottom: 0;
 }
 table.table-banded-cols-border-inside-vertical tr td:nth-child(4n+1), table.table-banded-cols-border-inside-vertical tr td:nth-child(4n+2) {
     background-color: #FF0;

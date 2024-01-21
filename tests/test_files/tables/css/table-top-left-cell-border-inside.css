@@ -1,3 +1,7 @@
+table.table-top-left-cell-border-inside {
+    line-height: 1;
+    margin-bottom: 0;
+}
 table.table-top-left-cell-border-inside tr:first-of-type td:first-of-type {
     background-color: #FF0;
 }

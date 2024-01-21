@@ -1,6 +1,8 @@
 table.table-last-row-border-inside {
     border-collapse: collapse;
     border-style: hidden;
+    line-height: 1;
+    margin-bottom: 0;
 }
 table.table-last-row-border-inside tr:last-of-type td {
     background-color: #FF0;

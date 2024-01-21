@@ -1,14 +1,14 @@
 p.borderallsolidauto05ptparagraph {
-    border-top-style: solid;
-    border-top-width: 0.5pt;
-    padding-top: 1pt;
-    border-left-style: solid;
-    border-left-width: 0.5pt;
-    padding-left: 4pt;
     border-bottom-style: solid;
     border-bottom-width: 0.5pt;
     padding-bottom: 1pt;
+    border-left-style: solid;
+    border-left-width: 0.5pt;
+    padding-left: 4pt;
     border-right-style: solid;
     border-right-width: 0.5pt;
     padding-right: 4pt;
+    border-top-style: solid;
+    border-top-width: 0.5pt;
+    padding-top: 1pt;
 }

@@ -1,12 +1,12 @@
 p.resolution-L1:before {
-    text-indent: -0.3in;
-    font-family: Symbol, serif;
-    font-weight: normal;
-    font-style: normal;
     text-transform: none;
+    font-weight: normal;
+    font-family: Symbol, serif;
+    font-style: normal;
     content: "\f0b7";
     counter-increment: resolutions-L0;
-    text-align: left;
+    text-align: start;
+    text-indent: -0.3in;
     display: inline-block;
 }
 p.resolution-L1 {

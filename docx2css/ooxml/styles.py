@@ -1,17 +1,15 @@
-import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 
-import cssutils
 from lxml import etree
 
-from docx2css.api import Border
+from docx2css.api import Border, TextDecoration
 from docx2css.ooxml import w, wordml
 from docx2css.ooxml.constants import CONTENT_TYPE, NAMESPACES
 from docx2css.ooxml.simple_types import (
     ST_Border, ST_FontFamily, ST_Underline, ST_Jc
 )
-from docx2css.utils import CSSColor, CssUnit
+from docx2css.utils import AutoLength, CSSColor, CssUnit, Percentage
 
 
 class Styles(Mapping):
@@ -21,9 +19,11 @@ class Styles(Mapping):
         self.opc_package = opc_package
         styles_part = opc_package.parts[CONTENT_TYPE.STYLES]
         for style in (s for s in styles_part if isinstance(s, DocxStyle)):
-            style.stylesheet = self
+            style.styles = self
             if style.name != 'Default Paragraph Font':
                 self.__styles__[style.id] = style
+        self.doc_defaults = styles_part.find(w('docDefaults'))
+        self.doc_defaults.styles = self
 
     def __getitem__(self, k):
         return self.__styles__[k]
@@ -82,235 +82,291 @@ class DocxStyle(etree.ElementBase):
     @property
     def parent(self):
         """Return the parent style or None"""
-        return self.stylesheet.get(self.parent_id, None)
+        return self.styles.get(self.parent_id, None)
 
     @property
-    def stylesheet(self):
-        return getattr(self, '_stylesheet', None)
+    def styles(self):
+        return getattr(self, '_styles', None)
 
-    @stylesheet.setter
-    def stylesheet(self, stylesheet):
-        setattr(self, '_stylesheet', stylesheet)
-
-    @property
-    def numbering(self):
-        element = self.find('.//w:numPr', namespaces=NAMESPACES)
-        if element is not None:
-            element.styles = self.stylesheet
-        return element
-
-    def get_numbering_definition(self):
-        """Return the definition of the numbering, meaning the method
-        will lookup the numId and return the actual AbstractNumbering.
-        The numId can be inherited from the parent style.
-        """
-        definition = self.numbering.definition
-        if definition is None:
-            return self.parent.get_numbering_definition()
-        else:
-            return definition
+    @styles.setter
+    def styles(self, styles):
+        setattr(self, '_styles', styles)
 
     @property
     def children_styles(self):
         if not hasattr(self, '_children_styles'):
-            children = [s for s in self.stylesheet.values()
+            children = [s for s in self.styles.values()
                         if s.parent_id == self.id]
             setattr(self, '_children_styles', children)
         return self._children_styles
 
-    def css_current_selector(self):
-        """Get the selector for the current style only"""
-        return f"{self.css_selector_prefix}.{self.id}"
 
-    def css_selector(self):
-        """Get the CSS selector for this style, including all the
-        children
-        """
-        names = [self.css_current_selector()]
-
-        for child in self.children_styles:
-            names.append(child.css_selector())
-        return ', '.join(names)
+class RPrProxy(etree.ElementBase):
 
     @property
-    def css_selector_prefix(self):
-        return ''
+    def all_caps(self):
+        element = self.find('.//w:caps', namespaces=NAMESPACES)
+        if isinstance(element, AllCapsProperty):
+            return element.prop_value
 
     @property
-    def css_properties(self):
-        for d in self.iterdescendants():
-            if isinstance(d, CssPropertyAdapter):
-                yield d
-
-    def css_style_declaration(self):
-        css_style = cssutils.css.CSSStyleDeclaration()
-        package = self.stylesheet.opc_package
-        for prop in self.css_properties:
-            prop.set_css_style(css_style, package)
-        return css_style
-
-    def css_style_rule(self):
-        if not hasattr(self, '_css_style_rule'):
-            css_style = self.css_style_declaration()
-            rule = cssutils.css.CSSStyleRule(self.css_selector(), style=css_style)
-            setattr(self, '_css_style_rule', rule)
-        return getattr(self, '_css_style_rule')
-
-    def css_style_rules(self):
-        return self.css_style_rule(),
-
-
-class CharacterStyle(DocxStyle):
+    def background_color(self):
+        element = self.find('.//w:shd', namespaces=NAMESPACES)
+        if isinstance(element, ShadingProperty):
+            return element.prop_value
 
     @property
-    def css_selector_prefix(self):
-        return 'span'
-
-
-class ParagraphStyle(DocxStyle):
-
-    def css_current_selector(self):
-        class_name = f'.{self.id}'
-        prefix = self.css_selector_prefix
-        if class_name == '.Normal' or re.match('h[1-6]', prefix):
-            return prefix
-        else:
-            return f"{self.css_selector_prefix}{class_name}"
-
-    def css_selector(self):
-        current_selector = self.css_current_selector()
-        names = [current_selector]
-
-        def not_p(s):
-            return s.parent_id == 'Normal' and not s.css_selector_prefix == 'p'
-
-        # Treat Normal style a bit differently
-        if current_selector == 'p':
-            children = filter(not_p, self.children_styles)
-        else:
-            children = self.children_styles
-
-        for child in children:
-            names.append(child.css_selector())
-        return ', '.join(names)
+    def bold(self):
+        element = self.find('.//w:b', namespaces=NAMESPACES)
+        if isinstance(element, BoldProperty):
+            return element.prop_value
 
     @property
-    def css_selector_prefix(self):
-        class_name = ''.join(self.name.split())
-        regex = re.match('heading([1-6])', class_name)
-        if regex:
-            return f'h{regex.group(1)}'
-        return 'p'
+    def border(self):
+        element = self.find('.//w:bdr', namespaces=NAMESPACES)
+        if isinstance(element, BorderProperty):
+            return element.prop_value
 
-    def css_style_rule(self):
-        if not hasattr(self, '_css_style_rule'):
-            css_style = self.css_style_declaration()
-            if self.numbering is not None:
-                self.pull_margin_left(css_style)
-                self.pull_text_indent(css_style)
-                self.adjust_for_indent(css_style)
+    @property
+    def double_strike(self):
+        element = self.find('.//w:dstrike', namespaces=NAMESPACES)
+        if isinstance(element, DStrikeProperty):
+            return element.prop_value
 
-                # Also, it is necessary to reset the appropriate counters
-                # since it cannot be done at on the pseudo :before element
-                level = self.get_numbering_level_for_style()
-                css_style['counter-reset'] = level.css_counter_resets()
-            rule = cssutils.css.CSSStyleRule(self.css_selector(), style=css_style)
-            setattr(self, '_css_style_rule', rule)
-        return getattr(self, '_css_style_rule')
+    @property
+    def emboss(self):
+        element = self.find('.//w:emboss', namespaces=NAMESPACES)
+        if isinstance(element, EmbossProperty):
+            return element.prop_value
 
-    def css_style_rules(self):
-        if self.numbering is not None:
-            return (
-                self.css_numbering_style_rule(),
-                self.css_style_rule(),
-            )
-        else:
-            return self.css_style_rule(),
+    @property
+    def font_color(self):
+        element = self.find('.//w:color', namespaces=NAMESPACES)
+        if isinstance(element, FontColorProperty):
+            return element.prop_value
 
-    def get_numbering_level_for_style(self):
-        return self.get_numbering_definition().get_level_for_paragraph(self.id)
+    @property
+    def font_family(self):
+        element = self.find('.//w:rFonts', namespaces=NAMESPACES)
+        if element is not None:
+            return element.prop_value
 
-    def css_numbering_style_declaration(self):
-        if self.numbering is not None:
-            return self.get_numbering_level_for_style().css_style_declaration()
+    @property
+    def font_kerning(self):
+        element = self.find('.//w:kern', namespaces=NAMESPACES)
+        if isinstance(element, FontKerningProperty):
+            return element.prop_value
 
-    def css_numbering_style_rule(self):
-        return self.get_numbering_level_for_style().css_style_rule()
+    @property
+    def font_size(self):
+        element = self.find('.//w:sz', namespaces=NAMESPACES)
+        if element is not None:
+            return element.prop_value
 
-    def adjust_for_indent(self, css_style):
-        """
-        Certain properties must be set depending on whether there is a
-        hanging indent, or a first line indent.
-        """
-        text_indent = css_style.getProperty('text-indent')
-        text_indent_value = text_indent.propertyValue[0].value
-        if text_indent_value < 0:
-            # Negative text-indent is a hanging indent
-            numbering_level = self.get_numbering_level_for_style()
-            if numbering_level.suffix == 'tab':
-                css_style['text-indent'] = ''
-        else:
-            # Positive text-indent is a first line indent
-            css_style['text-indent'] = ''
+    @property
+    def highlight(self):
+        element = self.find('.//w:highlight', namespaces=NAMESPACES)
+        if isinstance(element, HighlightProperty):
+            return element.prop_value
 
-    def pull_margin_left(self, css_style):
-        """
-        If there is a numbering property, it might necessary to grab the
-        margin-left if none is currently set
-        :param css_style:
-        :return:
-        """
-        self.pull_property_from_numbering_style(css_style, 'margin-left')
+    @property
+    def imprint(self):
+        element = self.find('.//w:imprint', namespaces=NAMESPACES)
+        if isinstance(element, ImprintProperty):
+            return element.prop_value
 
-    def pull_text_indent(self, css_style):
-        """
-        If there is a numbering property, it might be necessary to grab
-        the text-indent if none is currently set
-        :param css_style:
-        :return:
-        """
-        self.pull_property_from_numbering_style(css_style, 'text-indent')
+    @property
+    def italics(self):
+        element = self.find('.//w:i', namespaces=NAMESPACES)
+        if isinstance(element, ItalicProperty):
+            return element.prop_value
 
-    def pull_property_from_numbering_style(self, css_style, prop_name):
-        numbering_style = self.css_numbering_style_declaration()
-        p_property = css_style.getProperty(prop_name)
-        n_property = numbering_style.getProperty(prop_name)
-        if p_property is None and n_property is not None:
-            css_style[prop_name] = n_property.propertyValue.cssText
+    @property
+    def letter_spacing(self):
+        element = self.find('.//w:spacing', namespaces=NAMESPACES)
+        if isinstance(element, FontSpacingProperty):
+            return element.letter_spacing()
+
+    @property
+    def outline(self):
+        element = self.find('.//w:outline', namespaces=NAMESPACES)
+        if isinstance(element, OutlineProperty):
+            return element.prop_value
+
+    @property
+    def position(self):
+        element = self.find('.//w:position', namespaces=NAMESPACES)
+        if isinstance(element, PositionProperty):
+            return element.prop_value
+
+    @property
+    def shadow(self):
+        element = self.find('.//w:shadow', namespaces=NAMESPACES)
+        if isinstance(element, ShadowProperty):
+            return element.prop_value
+
+    @property
+    def small_caps(self):
+        element = self.find('.//w:smallCaps', namespaces=NAMESPACES)
+        if isinstance(element, SmallCapsProperty):
+            return element.prop_value
+
+    @property
+    def strike(self):
+        element = self.find('.//w:strike', namespaces=NAMESPACES)
+        if isinstance(element, StrikeProperty):
+            return element.prop_value
+
+    @property
+    def underline(self):
+        element = self.find('.//w:u', namespaces=NAMESPACES)
+        if isinstance(element, UnderlineProperty):
+            return element.prop_value
+
+    @property
+    def vertical_align(self):
+        element = self.find('.//w:vertAlign', namespaces=NAMESPACES)
+        if isinstance(element, VerticalAlignProperty):
+            return element.prop_value
+
+    @property
+    def visible(self):
+        element = self.find('.//w:vanish', namespaces=NAMESPACES)
+        if isinstance(element, VanishProperty):
+            return element.prop_value
 
 
-class NumberingStyle(DocxStyle):
+class PPrProxy(etree.ElementBase):
 
-    def css_style_rules(self):
-        # TODO: Handle numbering styles
-        return []
+    @property
+    def border_bottom(self):
+        element = self.find('.//w:pBdr/w:bottom', namespaces=NAMESPACES)
+        if isinstance(element, BorderBottomProperty):
+            return element.prop_value
+
+    @property
+    def border_left(self):
+        element = self.find('.//w:pBdr/w:left', namespaces=NAMESPACES)
+        if isinstance(element, BorderLeftProperty):
+            return element.prop_value
+
+    @property
+    def border_top(self):
+        element = self.find('.//w:pBdr/w:top', namespaces=NAMESPACES)
+        if isinstance(element, BorderTopProperty):
+            return element.prop_value
+
+    @property
+    def border_right(self):
+        element = self.find('.//w:pBdr/w:right', namespaces=NAMESPACES)
+        if isinstance(element, BorderRightProperty):
+            return element.prop_value
+
+    @property
+    def keep_together(self):
+        element = self.find('.//w:keepLines', namespaces=NAMESPACES)
+        if isinstance(element, KeepLinesTogetherProperty):
+            return element.prop_value
+
+    @property
+    def keep_with_next(self):
+        element = self.find('.//w:keepNext', namespaces=NAMESPACES)
+        if isinstance(element, KeepWithNextParagraphProperty):
+            return element.prop_value
+
+    @property
+    def line_height(self):
+        element = self.find('.//w:spacing', namespaces=NAMESPACES)
+        if isinstance(element, FontSpacingProperty):
+            return element.line_height()
+
+    @property
+    def margin_left(self):
+        element = self.find('.//w:ind', namespaces=NAMESPACES)
+        if isinstance(element, IndentProperty):
+            return element.margin_left()
+
+    @property
+    def margin_right(self):
+        element = self.find('.//w:ind', namespaces=NAMESPACES)
+        if isinstance(element, IndentProperty):
+            return element.margin_right()
+
+    @property
+    def space_after(self):
+        element = self.find('.//w:spacing', namespaces=NAMESPACES)
+        if isinstance(element, FontSpacingProperty):
+            return element.margin_bottom()
+
+    @property
+    def space_before(self):
+        element = self.find('.//w:spacing', namespaces=NAMESPACES)
+        if isinstance(element, FontSpacingProperty):
+            return element.margin_top()
+
+    @property
+    def numbering_instance_id(self):
+        element = self.find('.//w:numPr', namespaces=NAMESPACES)
+        if isinstance(element, NumberingProperty):
+            return element.id
+
+    @property
+    def numbering_instance_level(self):
+        element = self.find('.//w:numPr', namespaces=NAMESPACES)
+        if isinstance(element, NumberingProperty):
+            return element.level
+
+    @property
+    def page_break_before(self):
+        element = self.find('.//w:pageBreakBefore', namespaces=NAMESPACES)
+        if isinstance(element, PageBreakBeforeProperty):
+            return element.prop_value
+
+    @property
+    def text_align(self):
+        element = self.find('.//w:jc', namespaces=NAMESPACES)
+        if isinstance(element, JustificationProperty):
+            return element.prop_value
+
+    @property
+    def text_indent(self):
+        element = self.find('.//w:ind', namespaces=NAMESPACES)
+        if isinstance(element, IndentProperty):
+            return element.text_indent()
+
+    @property
+    def widows_control(self):
+        element = self.find('.//w:widowControl', namespaces=NAMESPACES)
+        if isinstance(element, WidowControlProperty):
+            return element.prop_value
+
+
+class DocxCharacterStyle(DocxStyle, RPrProxy):
+    pass
+
+
+class DocxParagraphStyle(DocxStyle, PPrProxy, RPrProxy):
+    pass
+
+
+class DocxNumberingStyle(DocxStyle, PPrProxy):
+    pass
 
 
 class DocxTableStyle(DocxStyle):
-    css_selector_prefix = 'table'
-
-    def css_style_rules(self):
-        from docx2css.css.serializers import CssTableSerializer
-        from docx2css.ooxml.tables import parse_docx_table_style
-        api_table = parse_docx_table_style(self)
-        serializer = CssTableSerializer(api_table)
-        return serializer.css_style_rules()
+    pass
 
 
 @wordml('docDefaults')
-class DocDefaults(etree.ElementBase):
+class DocDefaults(RPrProxy, PPrProxy):
 
-    def css_properties(self):
-        for d in self.iterdescendants():
-            if isinstance(d, CssPropertyAdapter):
-                yield d
+    @property
+    def styles(self):
+        return getattr(self, '_styles', None)
 
-    def css_style_declaration(self):
-        css_style = cssutils.css.CSSStyleDeclaration()
-        package = getattr(self, 'package', None)
-        for prop in self.css_properties():
-            prop.set_css_style(css_style, package)
-        return css_style
+    @styles.setter
+    def styles(self, styles):
+        setattr(self, '_styles', styles)
 
 
 class DocxPropertyAdapter(etree.ElementBase, ABC):
@@ -325,85 +381,75 @@ class DocxPropertyAdapter(etree.ElementBase, ABC):
     def prop_value(self):
         pass
 
+    @property
+    def docx_parser(self):
+        return getattr(self, '_docx_parser')
 
-class CssPropertyAdapter(etree.ElementBase, ABC):
+    @docx_parser.setter
+    def docx_parser(self, package):
+        setattr(self, '_docx_parser', package)
 
-    def get_boolean(self, attribute_name, default=True):
-        """Return the value of an attribute as a boolean
-        A default value can be supplied in case the attribute is non-existent.
+    def get_measure(self):
+        """Parse a TblWidth as a Measure"""
+        unit = self.get(w('type'))
+        value = self.get(w('w'))
+        if unit == 'auto':
+            return AutoLength()
+        elif unit == 'dxa':
+            return CssUnit(value, 'twip')
+        elif unit == 'nil':
+            return CssUnit(0)
+        elif unit == 'pct':
+            return Percentage(int(value) / 50)
+        else:
+            raise ValueError(f'Unit "{unit}" is invalid!')
+
+    def get_boolean_attribute(self, name):
+        """Get the boolean value of an attribute or None if the
+        attribute doesn't exist.
         """
-        attribute_value = self.get_string(attribute_name)
+        attribute_value = self.get(w(name))
+        if attribute_value is not None:
+            return not attribute_value.lower() in ('false', '0')
+        else:
+            return None
+
+    def get_toggle_property(self, name):
+        """Parse a toggle (boolean) property from a child 'name' of the
+        xml element.
+
+        :returns: bool value or None if the child 'name' doesn't exist
+        """
+        prop = self.getparent().find(w(name))
+        if prop is None:
+            return None
+        attribute_value = prop.get(w('val'))
         if attribute_value:
             return not attribute_value.lower() in ('false', '0')
-        return default
+        else:
+            return True
 
-    def get_string(self, attribute_name, default=None):
-        """Return the value of an attribute as a string
-        If a default value is provided, it is returned if the attribute
-        does not exist, or it doesn't have any value
-        """
-        return self.get(w(attribute_name)) or default
+    def get_opc_package(self):
+        ancestors = list(self.iterancestors(w('style'), w('docDefaults')))
+        if len(ancestors):
+            styles = ancestors[0].styles
+            package = styles.opc_package
+        else:
+            numbering = list(self.iterancestors(w('abstractNum')))
+            numbering_part = numbering[0].numbering_part
+            package = numbering_part.opc_package
+        return package
 
-    @abstractmethod
-    def set_css_style(self, style_rule, opc_package=None):
-        pass
+    def get_theme(self):
+        package = self.get_opc_package()
+        return package.theme
 
-
-class ToggleProperty(CssPropertyAdapter):
-
-    @property
-    @abstractmethod
-    def css_name(self):
-        pass
-
-    @property
-    @abstractmethod
-    def css_value(self):
-        pass
-
-    @property
-    @abstractmethod
-    def css_none_value(self):
-        pass
-
-    def get_value(self):
-        return self.get_boolean('val')
-
-    def set_css_style(self, style_rule, opc_package=None):
-        style_rule[self.css_name] = self.css_value if self.get_value() else self.css_none_value
+    def get_font_table(self):
+        package = self.get_opc_package()
+        return package.font_table
 
 
-class ComplexToggleProperty(ToggleProperty, ABC):
-
-    def set_css_style(self, style_rule, opc_package=None):
-        for name, value, none_value in zip(self.css_name, self.css_value, self.css_none_value):
-            existing = style_rule[name]
-            # existing = style_rule.getPropertyValue(name)
-            new_value = value if self.get_value() else none_value
-
-            # Some docx elements are mutually exclusive, such as strike and
-            # dstrike. In this case, both elements will be present and one
-            # will be toggled on while the other will be toggled off. It is
-            # important not to override the property that is toggled on.
-            #
-            # For example, if strike is parsed first, the CSS value will be
-            # 'line-through'. When dstrike is parsed later on, it must not
-            # set the value to 'none'
-            #
-            # Additionally, some properties must coexist such as strike
-            # and u which are both represented as the CSS property
-            # 'text-decoration-line'. If both strike and u are toggled on,
-            # the CSS value needs to be 'line-through underline'
-            if not existing or existing == none_value:
-                style_rule[name] = new_value
-            elif new_value != none_value and self.can_coexists_with(existing):
-                style_rule[name] = ' '.join((existing, new_value))
-
-    def can_coexists_with(self, existing_value):
-        return False
-
-
-class ColorPropertyAdapter(CssPropertyAdapter, ABC):
+class ColorPropertyAdapter(DocxPropertyAdapter, ABC):
 
     color_attribute = 'val'
     theme_color_attribute = 'themeColor'
@@ -413,7 +459,8 @@ class ColorPropertyAdapter(CssPropertyAdapter, ABC):
     def get_color(self):
         theme_color = self.get(w(self.theme_color_attribute))
         if theme_color is not None:
-            color = CSSColor.from_string(self.theme.get_color(theme_color))
+            theme = self.get_theme()
+            color = CSSColor.from_string(theme.get_color(theme_color))
             shade = self.get(w(self.theme_shade_attribute))
             if shade is not None:
                 color.apply_hsl_shade(shade)
@@ -424,32 +471,27 @@ class ColorPropertyAdapter(CssPropertyAdapter, ABC):
             color = self.get(w(self.color_attribute))
         return f'#{color}' if color is not None and color != 'auto' else ''
 
-    def set_css_style(self, style_rule, opc_package=None):
-        self.theme = opc_package.theme
-        super().set_css_style(style_rule, opc_package)
-
 
 @wordml('caps')
-class AllCapsProperty(ToggleProperty):
-    css_name = 'text-transform'
-    css_value = 'uppercase'
-    css_none_value = 'none'
-
-
-@wordml('b')
-class BoldProperty(DocxPropertyAdapter, ToggleProperty):
-    prop_name = 'bold'
-    css_name = 'font-weight'
-    css_value = 'bold'
-    css_none_value = 'normal'
+class AllCapsProperty(DocxPropertyAdapter):
+    prop_name = 'all_caps'
 
     @property
     def prop_value(self):
-        return self.get_boolean('val')
+        return self.get_toggle_property('caps')
+
+
+@wordml('b')
+class BoldProperty(DocxPropertyAdapter):
+    prop_name = 'bold'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('b')
 
 
 @wordml('bdr')
-class BorderProperty(DocxPropertyAdapter, ColorPropertyAdapter):
+class BorderProperty(ColorPropertyAdapter):
     prop_name = 'border'
     color_attribute = 'color'
     direction = ''  # Direction (top, left, bottom, right) of the border
@@ -473,7 +515,7 @@ class BorderProperty(DocxPropertyAdapter, ColorPropertyAdapter):
         value is set to 'auto'
         """
         color = self.get_color()
-        return f"#{color}" if color and color != 'auto' else None
+        return color if color and color != 'auto' else None
 
     @property
     def padding(self):
@@ -489,7 +531,11 @@ class BorderProperty(DocxPropertyAdapter, ColorPropertyAdapter):
     def shadow(self):
         """Specifies whether this border should be modified to create
         the appearance of a shadow."""
-        return self.get_boolean('shadow', None)
+        attribute_value = self.get(w('shadow'))
+        if attribute_value:
+            return not attribute_value.lower() in ('false', '0')
+        else:
+            return False
 
     @property
     def style(self) -> str:
@@ -506,7 +552,7 @@ class BorderProperty(DocxPropertyAdapter, ColorPropertyAdapter):
             * inset;
             * outset;
         """
-        value = self.get_string('val')
+        value = self.get(w('val'))
         return ST_Border.css_value(value)
 
     @property
@@ -515,64 +561,11 @@ class BorderProperty(DocxPropertyAdapter, ColorPropertyAdapter):
 
         :returns: CssUnit
         """
-        width = self.get_string('sz')
+        width = self.get(w('sz'))
         # The 'sz' attribute is in 8th of a pt.
         if width is None:
             return None
         return CssUnit(int(width) / 8, 'pt')
-
-    def css_border_color(self):
-        """Get the optional color atttribute of the border.
-        Returns a #Hex code, or an empty string if the color is undefined
-        or if its value is set to 'auto'
-        """
-        color = self.color
-        return color if color is not None else ''
-
-    def css_border_shadow(self):
-        """Get the value of the box-shadow if the attribute shadow is set to
-        true in the docx.
-        The color is never defined because Word seem to make all shadows black
-        """
-        width = self.css_border_width()
-        return f'{width} {width}' if width and self.shadow else ''
-
-    def css_border_style(self):
-        """Get the CSS value for this element.
-        The 'val' attribute is required and will be always be present.
-        The border type will be translated using an ST class
-        """
-        return self.style
-
-    def css_border_width(self):
-        """Get the CSS border width. The 'sz' attribute is in 8th of a pt.
-        """
-        width = self.width
-        return f'{width.pt:.2f}pt' if width is not None else ''
-
-    def css_padding(self):
-        """
-        Add the padding corresponding to space attribute
-        """
-        padding = self.padding
-        return f'{padding.pt}pt' if padding else ''
-
-    def set_css_style(self, style_rule, opc_package=None):
-        # The following attributes are not supported:
-        # frame
-        super().set_css_style(style_rule, opc_package)
-        direction = f'-{self.direction}' if self.direction else self.direction
-        style_property_name = f'border{direction}-style'
-        width_property_name = f'border{direction}-width'
-        color_property_name = f'border{direction}-color'
-        padding_property_name = f'padding{direction}'
-        style = self.css_border_style()
-        style_rule[style_property_name] = style
-        if style != 'none':
-            style_rule[width_property_name] = self.css_border_width()
-            style_rule[color_property_name] = self.get_color()
-            style_rule[padding_property_name] = self.css_padding()
-            style_rule['box-shadow'] = self.css_border_shadow()
 
 
 @wordml('bottom')
@@ -600,74 +593,69 @@ class BorderTopProperty(BorderProperty):
 
 
 @wordml('dstrike')
-class DStrikeProperty(ComplexToggleProperty):
-    css_name = (
-        'text-decoration-line',
-        'text-decoration-style',
-    )
-    css_value = (
-        'line-through',
-        'double',
-    )
-    css_none_value = (
-        'none',
-        '',
-    )
+class DStrikeProperty(DocxPropertyAdapter):
+    prop_name = 'double_strike'
 
-    def can_coexists_with(self, existing_value):
-        return existing_value == 'underline'
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('dstrike')
 
 
 @wordml('emboss')
-class EmbossProperty(ComplexToggleProperty):
-    css_name = ('text-shadow',)
-    css_value = (
-        '-1px -1px 0 rgba(255,255,255,0.3), 1px 1px 0 rgba(0,0,0,0.8)',
-    )
-    css_none_value = ('unset',)
+class EmbossProperty(DocxPropertyAdapter):
+    prop_name = 'emboss'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('emboss')
 
 
 @wordml('color')
 class FontColorProperty(ColorPropertyAdapter):
+    prop_name = 'font_color'
 
-    def set_css_style(self, style_rule, opc_package=None):
-        super().set_css_style(style_rule, opc_package)
-        style_rule['color'] = self.get_color()
+    @property
+    def prop_value(self):
+        return self.get_color()
 
 
 @wordml('kern')
-class FontKerningProperty(CssPropertyAdapter):
+class FontKerningProperty(DocxPropertyAdapter):
+    prop_name = 'font_kerning'
 
-    def set_css_style(self, style_rule, opc_package=None):
+    @property
+    def prop_value(self):
         value = int(self.get(w('val'))) / 2  # Value is in half-points
-        style_rule['font-kerning'] = 'normal' if value != 0 else 'auto'
+        return value != 0
 
 
 @wordml('rFonts')
-class FontProperty(CssPropertyAdapter):
+class FontProperty(DocxPropertyAdapter):
+    prop_name = 'font_family'
 
     def _wrap(self, font_name):
         """Wrap a font name in quotes if it has a space in it"""
         if font_name is not None:
             return f'"{font_name}"' if ' ' in font_name else font_name
 
-    def _get_theme_font_or_font_value(self, font_name, theme):
+    def _get_theme_font_or_font_value(self, font_name):
         """Get the theme font associated with the theme or return the
         same value if it's not a theme color
         """
+        theme = self.get_theme()
         if font_name in theme.fonts:
             font_name = theme.get_font(font_name)
         return font_name
 
-    def _get_font_from_font_table(self, font_name, font_table):
+    def _get_font_from_font_table(self, font_name):
+        font_table = self.get_font_table()
         font = font_table.get_font(font_name)
         if font is not None:
             return font.css_family
         return font_name,
 
-    def set_css_style(self, style_rule, opc_package=None):
-        theme = opc_package.theme
-        font_table = opc_package.font_table
+    @property
+    def prop_value(self):
         # What we want to do here is have a set of the fonts, but at the
         # same time, we want to keep the order so it's easier to use a
         # dict because the order is guaranteed
@@ -681,9 +669,9 @@ class FontProperty(CssPropertyAdapter):
             self.get(w('cstheme')) or self.get(w('cs')),
         )
         for attribute in attributes:
-            font_name = self._get_theme_font_or_font_value(attribute, theme)
+            font_name = self._get_theme_font_or_font_value(attribute)
             if font_name:
-                for f in self._get_font_from_font_table(font_name, font_table):
+                for f in self._get_font_from_font_table(font_name):
                     fonts[self._wrap(f)] = None
         # Push the generic family at the end. This happens when different
         # fonts are specified, and they are found in the font table
@@ -691,168 +679,177 @@ class FontProperty(CssPropertyAdapter):
             if generic in fonts:
                 value = fonts.pop(generic)
                 fonts[generic] = value
-        style_rule['font-family'] = ', '.join(fonts.keys())
+        return ', '.join(fonts.keys())
 
 
 @wordml('spacing')
-class FontSpacingProperty(CssPropertyAdapter):
+class FontSpacingProperty(DocxPropertyAdapter):
     """
     This element can represent the font spacing property, the line height,
     or the margins between paragraphs.
     """
 
-    def css_letter_spacing(self):
+    @property
+    def prop_name(self):
+        if self.get(w('val')) is not None:
+            return 'letter_spacing'
+        else:
+            return 'line_height', 'margin_top', 'margin_bottom'
+
+    @property
+    def prop_value(self):
+        if self.prop_name == 'letter_spacing':
+            value = self.get(w('val'))
+            return CssUnit(int(value), 'twip')  # Value is in 20th of a point
+        else:
+            return self.line_height(), self.margin_top(), self.margin_bottom()
+
+    def letter_spacing(self):
         value = self.get(w('val'))
         if value is not None:
-            value = int(value) / 20  # Value is in 20th of a point
-            return f'{value}pt'
+            return CssUnit(int(value), 'twip')  # Value is in 20th of a point
 
-    def css_line_height(self):
+    def line_height(self):
         height = self.get(w('line'))
         rule = self.get(w('lineRule'))
         if height is not None:
             if rule in ('atLeast', 'exact'):
-                # Height is in 20th of a point
-                height = int(height) / 20
-                return f'{height}pt'
+                return CssUnit(int(height), 'twip')
             elif rule == 'auto':
                 # Height is 240th of a line
-                height = int(height) / 240
-                return f'{height:.2f}'
+                return int(height) / 240
+                # return AutoLength(height)
 
-    def css_margin_bottom(self):
+    def margin_bottom(self):
         after = self.get(w('after'))
-        auto = self.get_boolean('afterAutospacing', False)
-        if not auto and after is not None:
-            after = int(after) / 20  # Value is in 20th of a point
-            return f'{after:.2f}pt'
+        auto = self.get_boolean_attribute('afterAutospacing')
+        if auto is not True and after is not None:
+            # after = int(after) / 20  # Value is in 20th of a point
+            # return f'{after:.2f}pt'
+            return CssUnit(after, 'twip')
 
-    def css_margin_top(self):
+    def margin_top(self):
         before = self.get(w('before'))
-        auto = self.get_boolean('beforeAutospacing', False)
-        if not auto and before is not None:
-            before = int(before) / 20  # Value is in 20th of a point
-            return f'{before:.2f}pt'
-
-    def set_css_style(self, style_rule, opc_package=None):
-        style_rule['letter-spacing'] = self.css_letter_spacing()
-        style_rule['line-height'] = self.css_line_height()
-        style_rule['margin-bottom'] = self.css_margin_bottom()
-        style_rule['margin-top'] = self.css_margin_top()
+        auto = self.get_boolean_attribute('beforeAutospacing')
+        if auto is not True and before is not None:
+            # before = int(before) / 20  # Value is in 20th of a point
+            # return f'{before:.2f}pt'
+            return CssUnit(before, 'twip')
 
 
 @wordml('highlight')
-class HighlightProperty(ComplexToggleProperty):
-    css_name = (
-        'background-color',
-    )
-    css_none_value = (
-        'unset',
-    )
-
-    @property
-    def css_value(self):
-        value = self.get(w('val'))
-        if value == 'none':
-            value = self.css_none_value[0]
-        return value.lower(),
-
-
-@wordml('imprint')
-class ImprintProperty(ComplexToggleProperty):
-    css_name = ('text-shadow',)
-    css_value = (
-        '0 1px 0 rgba(255,255,255,0.3), 0 -1px 0 rgba(0,0,0,0.7)',
-    )
-    css_none_value = ('unset',)
-
-
-@wordml('ind')
-class IndentProperty(CssPropertyAdapter):
-
-    def css_first_line_indent(self):
-        first_line = self.get(w('firstLine'))
-        if first_line is not None:
-            first_line = int(first_line) / 20 / 72
-            return f'{first_line:.2f}in'
-
-    def css_hanging_indent(self):
-        hanging = self.get(w('hanging'))
-        if hanging is not None:
-            hanging = int(hanging) / 20 / 72
-            return f'{-1 * hanging:.2f}in'
-
-    def css_margin_left(self):
-        left = self.get(w('start')) or self.get(w('left'))
-        if left is not None:
-            # Value is in 20th of a point and converted in inches
-            left = int(left) / 20 / 72
-            return f'{left:.2f}in'
-
-    def css_margin_right(self):
-        right = self.get(w('end')) or self.get(w('right'))
-        if right is not None:
-            # Value is in 20th of a point and converted in inches
-            right = int(right) / 20 / 72
-            return f'{right:.2f}in'
-
-    def set_css_style(self, style_rule, opc_package=None):
-        style_rule['margin-left'] = self.css_margin_left()
-        style_rule['margin-right'] = self.css_margin_right()
-        text_indent = self.css_hanging_indent() or self.css_first_line_indent()
-        style_rule['text-indent'] = text_indent
-
-
-@wordml('i')
-class ItalicProperty(DocxPropertyAdapter, ToggleProperty):
-    prop_name = 'italics'
-    css_name = 'font-style'
-    css_value = 'italic'
-    css_none_value = 'normal'
+class HighlightProperty(DocxPropertyAdapter):
+    prop_name = 'highlight'
 
     @property
     def prop_value(self):
-        return self.get_boolean('val')
+        return self.get(w('val')).lower()
+
+
+@wordml('imprint')
+class ImprintProperty(DocxPropertyAdapter):
+    prop_name = 'imprint'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('imprint')
+
+
+@wordml('ind')
+class IndentProperty(DocxPropertyAdapter):
+    prop_name = (
+        'margin_left',
+        'margin_right',
+        'text_indent',
+    )
+
+    @property
+    def prop_value(self):
+        return (
+            self.margin_left(),
+            self.margin_right(),
+            self.text_indent(),
+        )
+
+    def first_line_indent(self):
+        first_line = self.get(w('firstLine'))
+        if first_line is not None:
+            return CssUnit(int(first_line), 'twip')
+
+    def hanging_indent(self):
+        hanging = self.get(w('hanging'))
+        if hanging is not None:
+            return CssUnit(-1 * int(hanging), 'twip')
+
+    def text_indent(self):
+        indents = (self.first_line_indent(), self.hanging_indent())
+        return next((x for x in indents if x is not None), None)
+
+    def margin_left(self):
+        left = self.get(w('start')) or self.get(w('left'))
+        if left is not None:
+            return CssUnit(int(left), 'twip')
+
+    def margin_right(self):
+        right = self.get(w('end')) or self.get(w('right'))
+        if right is not None:
+            return CssUnit(int(right), 'twip')
+
+
+@wordml('i')
+class ItalicProperty(DocxPropertyAdapter):
+    prop_name = 'italics'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('i')
 
 
 @wordml('jc')
-class JustificationProperty(DocxPropertyAdapter, CssPropertyAdapter):
+class JustificationProperty(DocxPropertyAdapter):
 
-    prop_name = 'alignment'
+    @property
+    def prop_name(self):
+        if self.getparent().tag == w('pPr'):
+            return 'text_align'
+        else:
+            return 'alignment'
 
     @property
     def prop_value(self):
         attr_value = self.get(w('val'))
         return ST_Jc.css_value(attr_value)
 
-    def set_css_style(self, style_rule, opc_package=None):
-        style_rule['text-align'] = self.prop_value
-
 
 @wordml('keepLines')
-class KeepLinesTogetherProperty(ToggleProperty):
-    css_name = 'break-inside'
-    css_value = 'avoid'
-    css_none_value = 'unset'
+class KeepLinesTogetherProperty(DocxPropertyAdapter):
+    prop_name = 'break_inside'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('keepLines')
 
 
 @wordml('keepNext')
-class KeepWithNextParagraphProperty(ToggleProperty):
-    css_name = 'break-after'
-    css_value = 'avoid'
-    css_none_value = 'unset'
+class KeepWithNextParagraphProperty(DocxPropertyAdapter):
+    prop_name = 'break_after'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('keepNext')
 
 
 @wordml('numPr')
 class NumberingProperty(etree.ElementBase):
 
     @property
-    def definition(self):
+    def id(self):
         element = self.find(w('numId'))
         if element is not None:
             value = int(element.get(w('val')))
-            numbering = self.styles.opc_package.get_numbering()
-            return numbering.numbering_instances[value]
+            # numbering = self.styles.opc_package.numbering
+            # return numbering.numbering_instances[value]
+            return value
 
     @property
     def level(self):
@@ -861,48 +858,36 @@ class NumberingProperty(etree.ElementBase):
 
 
 @wordml('outline')
-class OutlineProperty(ComplexToggleProperty):
-    css_name = (
-        '-webkit-text-stroke',
-        '-webkit-text-fill-color',
-    )
-    css_value = (
-        '1px',
-        '#fff',
-    )
-    css_none_value = (
-        'unset',
-        'unset',
-    )
+class OutlineProperty(DocxPropertyAdapter):
+    prop_name = 'outline'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('outline')
 
 
 @wordml('pageBreakBefore')
-class PageBreakBeforeProperty(ToggleProperty):
-    css_name = 'break-before'
-    css_value = 'page'
-    css_none_value = 'unset'
+class PageBreakBeforeProperty(DocxPropertyAdapter):
+    prop_name = 'break_before'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('pageBreakBefore')
 
 
 @wordml('position')
-class PositionProperty(ComplexToggleProperty):
-    css_name = (
-        'vertical-align',
-    )
-    css_none_value = (
-        'baseline',
-    )
+class PositionProperty(DocxPropertyAdapter):
+    prop_name = 'position'
 
     @property
-    def css_value(self):
+    def prop_value(self):
         value = int(self.get(w('val'))) / 2  # Value in half-points
-        return f'{value}pt',
+        return CssUnit(value, 'pt')
 
 
 @wordml('shd')
-class ShadingProperty(DocxPropertyAdapter, ColorPropertyAdapter):
+class ShadingProperty(ColorPropertyAdapter):
     prop_name = 'background_color'
-    css_name = 'background-color'
-    css_none_value = 'unset'
     color_attribute = 'fill'
     theme_color_attribute = 'themeFill'
     theme_shade_attribute = 'themeFillShade'
@@ -912,135 +897,81 @@ class ShadingProperty(DocxPropertyAdapter, ColorPropertyAdapter):
     def prop_value(self):
         return self.get_color()
 
-    def set_css_style(self, style_rule, opc_package=None):
-        super().set_css_style(style_rule, opc_package)
-        existing = style_rule[self.css_name]
-        color = self.get_color() or self.css_none_value
-
-        # It's important to check that the CSS property does not already have
-        # a value. If there is one already, leave it alone, unless it's the
-        # none value
-        if not existing or existing == self.css_none_value:
-            style_rule[self.css_name] = color
-
 
 @wordml('shadow')
-class ShadowProperty(ComplexToggleProperty):
-    css_name = ('text-shadow',)
-    css_value = ('1px 1px 2px',)
-    css_none_value = ('unset',)
+class ShadowProperty(DocxPropertyAdapter):
+    prop_name = 'shadow'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('shadow')
 
 
 @wordml('smallCaps')
-class SmallCapsProperty(ToggleProperty):
-    css_name = 'font-variant-caps'
-    css_value = 'small-caps'
-    css_none_value = 'normal'
+class SmallCapsProperty(DocxPropertyAdapter):
+    prop_name = 'small_caps'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('smallCaps')
 
 
 @wordml('strike')
-class StrikeProperty(ComplexToggleProperty):
-    css_name = (
-        'text-decoration-line',
-        'text-decoration-style',
-    )
-    css_value = (
-        'line-through',
-        'solid',
-    )
-    css_none_value = (
-        'none',
-        '',
-    )
+class StrikeProperty(DocxPropertyAdapter):
+    prop_name = 'strike'
 
-    def can_coexists_with(self, existing_value):
-        return existing_value == 'underline'
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('strike')
 
 
 @wordml('sz')
-class SizeProperty(CssPropertyAdapter):
+class SizeProperty(DocxPropertyAdapter):
+    prop_name = 'font_size'
 
-    def get_value(self):
-        return int(self.get(w('val')))
-
-    def set_css_style(self, style_rule, opc_package=None):
-        style_rule['font-size'] = f"{self.get_value() / 2}pt"
+    @property
+    def prop_value(self):
+        sz = int(self.get(w('val')))
+        return CssUnit(sz / 2, 'pt')
 
 
 @wordml('u')
-class UnderlineProperty(ColorPropertyAdapter, ComplexToggleProperty):
+class UnderlineProperty(ColorPropertyAdapter):
     color_attribute = 'color'
-    css_name = (
-        'text-decoration-line',
-        'text-decoration-style',
-        'text-decoration-color',
-    )
-    css_none_value = (
-        'none',
-        '',
-        '',
-    )
+    prop_name = 'underline'
 
     @property
-    def css_value(self):
-        value = self.get(w('val'))
-        has_underline = value != self.css_none_value[0]
-        color = self.get_color() if has_underline else self.css_none_value[1]
-        style = ST_Underline.css_value(value) if has_underline else ''
-        return (
-            'underline' if value != self.css_none_value[0] else value,
-            style,
-            color,
-        )
-
-    def can_coexists_with(self, existing_value):
-        return existing_value == 'line-through'
+    def prop_value(self):
+        color = self.get_color()
+        style = ST_Underline.css_value(self.get(w('val')))
+        value = TextDecoration(color=color, style=style)
+        if style != 'none':
+            value.add_line(TextDecoration.UNDERLINE)
+        return value
 
 
 @wordml('vanish')
-class VanishProperty(ToggleProperty):
-    css_name = 'visibility'
-    css_value = 'hidden'
-    css_none_value = 'visible'
+class VanishProperty(DocxPropertyAdapter):
+    prop_name = 'visible'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('vanish')
 
 
 @wordml('vertAlign')
-class VerticalAlignProperty(ComplexToggleProperty):
-    css_name = (
-        'vertical-align',
-        'font-size',
-    )
-    css_none_value = (
-        '',
-        ''
-    )
+class VerticalAlignProperty(DocxPropertyAdapter):
+    prop_name = 'vertical_align'
 
     @property
-    def css_value(self):
-        value = self.get(w('val'))
-        align = 'baseline'
-        if value == 'superscript':
-            align = 'super'
-        elif value == 'subscript':
-            align = 'sub'
-        return (
-            align,
-            'smaller' if align != 'baseline' else ''
-        )
+    def prop_value(self):
+        return self.get(w('val'))
 
 
 @wordml('widowControl')
-class WidowControlProperty(ComplexToggleProperty):
-    css_name = (
-        'widows',
-        'orphans',
-    )
-    # Widow control is usually on, so values are inverted
-    css_value = (
-        'unset',
-        'unset',
-    )
-    css_none_value = (
-        '0',
-        '0',
-    )
+class WidowControlProperty(DocxPropertyAdapter):
+    prop_name = 'widows'
+
+    @property
+    def prop_value(self):
+        return self.get_toggle_property('widowControl')

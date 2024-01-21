@@ -2,3 +2,10 @@
     size: 8.5in 11in;
     margin: 1in 1in 1in 1in;
     }
+@media screen {
+    body {
+        max-width: 6.5in;
+        margin: 1em auto;
+        padding: 1in 1in 1in 1in;
+    }
+}

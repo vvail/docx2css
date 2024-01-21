@@ -9,11 +9,11 @@ KeyValueProperty = namedtuple('KeyValueProperty', ['name', 'value'])
 @dataclass
 class PropertyContainer:
 
-    excluded_keys = ('name', 'id', 'parent', 'parent_id', 'children', 'type')
-
     def properties(self):
+        exclude = ('name', 'id', 'parent', 'parent_id', 'children', 'type')
+
         def accept(f):
-            result = f.name not in self.excluded_keys and getattr(self, f.name) is not None
+            result = f.name not in exclude and getattr(self, f.name) is not None
             return result
         return (KeyValueProperty(f.name, getattr(self, f.name))
                 for f in fields(self) if accept(f))
@@ -210,8 +210,8 @@ class CssUnit(int):
 
 class AutoLength(CssUnit):
 
-    def __new__(cls):
-        return int.__new__(cls, 0)
+    def __new__(cls, value=0):
+        return int.__new__(cls, value)
 
 
 class Percentage(CssUnit):

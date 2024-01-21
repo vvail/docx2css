@@ -1,7 +1,12 @@
-from docx2css.ooxml.package import OpcPackage
-from docx2css.stylesheet import Stylesheet
+from docx2css.css.serializers import CssStylesheetSerializer
+from docx2css.ooxml.parsers import DocxParser
 
 
 def open_docx(filename):
-    docx = OpcPackage(filename)
-    return Stylesheet(docx)
+    parser = DocxParser(filename)
+    return parser.parse()
+
+
+def to_string(stylesheet):
+    serializer = CssStylesheetSerializer(stylesheet)
+    return serializer.serialize()

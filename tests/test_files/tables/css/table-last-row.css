@@ -1,3 +1,7 @@
+table.table-last-row {
+    line-height: 1;
+    margin-bottom: 0;
+}
 table.table-last-row tr:last-of-type td {
     font-style: italic;
 }

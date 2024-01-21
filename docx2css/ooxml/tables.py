@@ -1,47 +1,10 @@
 from abc import ABC
-import logging
 
 from docx2css import api
 from docx2css.ooxml import w, wordml
+from docx2css.ooxml.parsers import DocxParser
 from docx2css.ooxml.styles import BorderProperty, DocxPropertyAdapter
-from docx2css.utils import AutoLength, CssUnit, Percentage
-
-
-logger = logging.getLogger(__name__)
-
-
-def _get_toggle_property(xml_element, name):
-    """Parse a toggle (boolean) property from a child 'name' of the xml
-    element.
-
-    :returns: boolean value or None if the child 'name' does not exist
-    """
-    prop = xml_element.find(w(name))
-    if prop is None:
-        return None
-    attribute_value = prop.get(w('val'))
-    if attribute_value:
-        return not attribute_value.lower() in ('false', '0')
-    else:
-        return True
-
-
-def _get_measure(xml_element):
-    """Parse a TblWidth as a Measure"""
-    if xml_element is None:
-        return None
-    unit = xml_element.get(w('type'))
-    value = xml_element.get(w('w'))
-    if unit == 'auto':
-        return AutoLength()
-    elif unit == 'dxa':
-        return CssUnit(value, 'twip')
-    elif unit == 'nil':
-        return CssUnit(0)
-    elif unit == 'pct':
-        return Percentage(int(value)/50)
-    else:
-        raise ValueError(f'Unit "{unit}" is invalid!')
+from docx2css.utils import CssUnit
 
 
 ########################################################################
@@ -54,7 +17,7 @@ class TableCellMargin(DocxPropertyAdapter, ABC):
 
     @property
     def prop_value(self):
-        return _get_measure(self)
+        return self.get_measure()
 
 
 class TableCellMarginBottom(TableCellMargin):
@@ -79,7 +42,7 @@ class TableCellSpacing(DocxPropertyAdapter):
 
     @property
     def prop_value(self):
-        return _get_measure(self)
+        return self.get_measure()
 
 
 @wordml('tblStyleColBandSize')
@@ -107,7 +70,7 @@ class TableIndent(DocxPropertyAdapter):
 
     @property
     def prop_value(self):
-        return _get_measure(self)
+        return self.get_measure()
 
 
 @wordml('tblStyleRowBandSize')
@@ -126,7 +89,7 @@ class TableWidth(DocxPropertyAdapter):
 
     @property
     def prop_value(self):
-        return _get_measure(self)
+        return self.get_measure()
 
 
 ########################################################################
@@ -142,7 +105,7 @@ class TableRowProperties(DocxPropertyAdapter):
     @property
     def prop_value(self):
         prop = api.TableRowProperties()
-        _parse_descendants(self, prop)
+        self.docx_parser.parse_descendants(self, prop)
         return prop
 
 
@@ -152,7 +115,7 @@ class TableRowCantSplit(DocxPropertyAdapter):
 
     @property
     def prop_value(self):
-        return not _get_toggle_property(self.getparent(), 'cantSplit')
+        return not self.get_toggle_property('cantSplit')
 
 
 @wordml('tblHeader')
@@ -161,7 +124,7 @@ class TableRowHeader(DocxPropertyAdapter):
 
     @property
     def prop_value(self):
-        return _get_toggle_property(self.getparent(), 'tblHeader')
+        return self.get_toggle_property('tblHeader')
 
 
 @wordml('trHeight')
@@ -196,7 +159,7 @@ class TableCellProperties(DocxPropertyAdapter):
     @property
     def prop_value(self):
         prop = api.TableCellProperties()
-        _parse_descendants(self, prop)
+        self.docx_parser.parse_descendants(self, prop)
         return prop
 
 
@@ -215,7 +178,7 @@ class TableCellFitText(DocxPropertyAdapter):
 
     @property
     def prop_value(self):
-        return _get_toggle_property(self.getparent(), 'tcFitText')
+        return self.get_toggle_property('tcFitText')
 
 
 @wordml('vAlign')
@@ -233,7 +196,7 @@ class TableCellWidth(DocxPropertyAdapter):
 
     @property
     def prop_value(self):
-        return _get_measure(self)
+        return self.get_measure()
 
 
 @wordml('noWrap')
@@ -242,7 +205,7 @@ class TableCellWrapText(DocxPropertyAdapter):
 
     @property
     def prop_value(self):
-        return not _get_toggle_property(self.getparent(), 'noWrap')
+        return not self.get_toggle_property('noWrap')
 
 
 ########################################################################
@@ -276,8 +239,8 @@ class TableConditionalFormatting(DocxPropertyAdapter):
     @property
     def prop_value(self):
         prop = api.TableConditionalFormatting()
-        # _parse_descendants(self, prop)
-        _parse_partial_table(self, prop)
+        parser = DocxParser('')
+        parser.parse_partial_table(self, prop)
         return prop
 
 
@@ -291,57 +254,3 @@ class BorderInsideHorizontalProperty(BorderProperty):
 class BorderInsideVerticalProperty(BorderProperty):
     prop_name = 'border_inside_vertical'
     direction = 'inside-vertical'
-
-
-def _parse_property_adapter(element, style):
-    if isinstance(element, DocxPropertyAdapter):
-        prop_name = element.prop_name
-        # Handle the case where a descendant of tblPr can be either
-        # a table border or a default cell margin (padding) and
-        if element.getparent().tag == w('tblCellMar'):
-            prop_name = f'cell_{prop_name}'
-        logger.debug(f'   Found adapter {type(element)}')
-        prop_value = element.prop_value
-        logger.debug(f'{8 * " "}{prop_name} = {prop_value}')
-        setattr(style, prop_name, prop_value)
-
-
-def _parse_descendants(xml_element, style):
-    if xml_element is None:
-        return
-    for d in xml_element.iterdescendants():
-        _parse_property_adapter(d, style)
-
-
-def _parse_partial_table(xml_element, style):
-    """Parse a table style or a table conditional formatting element"""
-    run_properties = xml_element.find(w('rPr'))
-    _parse_descendants(run_properties, style)
-
-    # TODO: Paragraph props
-
-    table_properties = xml_element.find(w('tblPr'))
-    _parse_descendants(table_properties, style)
-
-    row_properties = xml_element.find(w('trPr'))
-    _parse_property_adapter(row_properties, style)
-
-    cell_properties = xml_element.find(w('tcPr'))
-    _parse_property_adapter(cell_properties, style)
-
-
-def parse_docx_table_style(xml_element):
-    if xml_element.type != 'table':
-        return
-    logger.debug(f'Parsing table style "{xml_element.name}"')
-    from docx2css.api import TableStyle
-
-    style = TableStyle(name=xml_element.name, id=xml_element.id)
-
-    _parse_partial_table(xml_element, style)
-
-    conditional_formats = xml_element.findall(w('tblStylePr'))
-    for conditional_format in conditional_formats:
-        _parse_property_adapter(conditional_format, style)
-
-    return style
