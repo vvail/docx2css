@@ -855,7 +855,7 @@ class RequeteTestCase(TestCase):
         css = serializer.serialize()
         # stylesheet.preferences['simulate_printed_page'] = True
         # css = stylesheet.cssText
-        with open(expected_css, 'r') as expected:
+        with open(expected_css, mode='r', encoding='utf-8') as expected:
             self.assertEqual(expected.read(), css)
 
     def test_endos(self):
