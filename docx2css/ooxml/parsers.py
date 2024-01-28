@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from dataclasses import fields
 import logging
 import re
@@ -11,10 +12,8 @@ from docx2css.api import (
     ParagraphFormatting,
     TextFormatting,
 )
-from docx2css.ooxml import w
 from docx2css.ooxml.package import OpcPackage
 from docx2css.ooxml.simple_types import ST_NumberFormat, ST_Jc
-from docx2css.ooxml.styles import DocxPropertyAdapter
 from docx2css.stylesheet import Stylesheet
 
 logger = logging.getLogger(__name__)
@@ -52,7 +51,8 @@ DocxParserFactory = ParserFactory()
 
 class DocxParser:
 
-    def __init__(self, docx_filename):
+    def __init__(self, docx_filename, factory=None):
+        self.factory = factory or DocxParserFactory
         self.opc_package = OpcPackage(docx_filename)
         self.__stylesheet = Stylesheet()
         self.__counter_definitions = []
@@ -61,46 +61,10 @@ class DocxParser:
     def get_counter_for_paragraph(self, paragraph_id):
         return self.__paragraph_counters.get(paragraph_id, None)
 
-    def parse_property_adapter(self, element, style):
-        if isinstance(element, DocxPropertyAdapter):
-            element.docx_parser = self
-            prop_names = element.prop_name
-            prop_values = element.prop_value
-            if isinstance(prop_names, str):
-                prop_names = (prop_names,)
-                prop_values = (prop_values,)
-            for prop_name, prop_value in zip(prop_names, prop_values):
-                # Handle the case where a descendant of tblPr can be either
-                # a table border or a default cell margin (padding) and
-                if element.getparent().tag == w('tblCellMar'):
-                    prop_name = f'cell_{prop_name}'
-                logger.debug(f'   Found adapter {type(element)}')
-                logger.debug(f'{8 * " "}{prop_name} = {prop_value}')
-                if hasattr(style, prop_name):
-                    setattr(style, prop_name, prop_value)
-
-    def parse_descendants(self, xml_element, style):
-        if xml_element is None:
-            return
-        for d in xml_element.iterdescendants():
-            self.parse_property_adapter(d, style)
-
     def parse_partial_table(self, xml_element, style):
         """Parse a table style or a table conditional formatting element"""
-        run_properties = xml_element.find(w('rPr'))
-        self.parse_descendants(run_properties, style)
-
-        paragraph_properties = xml_element.find(w('pPr'))
-        self.parse_descendants(paragraph_properties, style)
-
-        table_properties = xml_element.find(w('tblPr'))
-        self.parse_descendants(table_properties, style)
-
-        row_properties = xml_element.find(w('trPr'))
-        self.parse_property_adapter(row_properties, style)
-
-        cell_properties = xml_element.find(w('tcPr'))
-        self.parse_property_adapter(cell_properties, style)
+        table_properties = tuple(f[0] for f in style.table_properties(False))
+        self.parse_xml_style(xml_element, style, table_properties)
 
     @classmethod
     def normalize_table_id(cls, xml_element_id):
@@ -121,9 +85,14 @@ class DocxParser:
 
         self.parse_partial_table(xml_element, style)
 
-        conditional_formats = xml_element.findall(w('tblStylePr'))
-        for conditional_format in conditional_formats:
-            self.parse_property_adapter(conditional_format, style)
+        formats = style.table_conditional_formatting_properties(False)
+        for format_name, _ in formats:
+            xml_conditional_format = getattr(xml_element, format_name)
+            if xml_conditional_format is None:
+                continue
+            conditional_format = api.TableConditionalFormatting()
+            self.parse_partial_table(xml_conditional_format, conditional_format)
+            setattr(style, format_name, conditional_format)
 
         self.__stylesheet.add_style(style)
         return style
@@ -233,7 +202,7 @@ class DocxParser:
 
     def parse_xml_style(self, xml_element, style, properties):
         for prop in properties:
-            parser_class = DocxParserFactory.get_property_parser(prop)
+            parser_class = self.factory.get_property_parser(prop)
             if parser_class:
                 parser = parser_class(self)
                 parser.parse(xml_element, style)
@@ -331,17 +300,22 @@ class DocxParser:
         return style
 
 
-class DocxPropertyParser:
+class DocxPropertyParser(ABC):
 
     def __init__(self, docx_parser: DocxParser):
         self.docx_parser = docx_parser
 
+    @abstractmethod
     def parse(self, xml_element, api_element):
         pass
 
 
 class SimplePropertyParser(DocxPropertyParser):
-    property_name = None
+
+    @property
+    @abstractmethod
+    def property_name(self):
+        pass
 
     def parse(self, xml_element, api_element):
         value = getattr(xml_element, self.property_name)
@@ -380,8 +354,12 @@ class FontFamilyParser(SimplePropertyParser):
     property_name = 'font_family'
 
 
-class FontKerningParser(SimplePropertyParser):
-    property_name = 'font_kerning'
+class FontKerningParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        kerning = xml_element.font_kerning
+        if kerning is not None:
+            api_element.font_kerning = kerning != 0
 
 
 class FontSizeParser(SimplePropertyParser):
@@ -432,8 +410,10 @@ class VerticalAlignParser(SimplePropertyParser):
     property_name = 'vertical_align'
 
 
-class VisibleParser(SimplePropertyParser):
-    property_name = 'visible'
+class VisibleParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.visible = xml_element.vanish
 
 
 DocxParserFactory.register('all_caps',          AllCapsParser)
@@ -531,8 +511,10 @@ class PageBreakBeforeParser(SimplePropertyParser):
     property_name = 'page_break_before'
 
 
-class TextAlignParser(SimplePropertyParser):
-    property_name = 'text_align'
+class TextAlignParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.text_align = ST_Jc.css_value(xml_element.text_align)
 
 
 class TextIndentParser(SimplePropertyParser):
@@ -559,3 +541,203 @@ DocxParserFactory.register('page_break_before', PageBreakBeforeParser)
 DocxParserFactory.register('text_align',        TextAlignParser)
 DocxParserFactory.register('text_indent',       TextIndentParser)
 DocxParserFactory.register('widows_control',    WidowsParser)
+
+
+########################################################################
+#                                                                      #
+# Table Formatting Parsers                                             #
+#                                                                      #
+########################################################################
+
+class AlignmentParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.alignment = ST_Jc.css_value(xml_element.justification)
+
+
+class BorderInsideHorizontalParser(SimplePropertyParser):
+    property_name = 'border_inside_horizontal'
+
+
+class BorderInsideVerticalParser(SimplePropertyParser):
+    property_name = 'border_inside_vertical'
+
+
+class CellPaddingBottomParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.cell_padding_bottom = xml_element.cell_margin_bottom
+
+
+class CellPaddingLeftParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.cell_padding_left = xml_element.cell_margin_left
+
+
+class CellPaddingRightParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.cell_padding_right = xml_element.cell_margin_right
+
+
+class CellPaddingTopParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.cell_padding_top = xml_element.cell_margin_top
+
+
+class CellSpacingParser(SimplePropertyParser):
+    property_name = 'cell_spacing'
+
+
+class ColBandSizeParser(SimplePropertyParser):
+    property_name = 'col_band_size'
+
+
+class ColSpanParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.colspan = xml_element.grid_span
+
+
+class DefaultCellParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        default_cell = api.TableCellProperties()
+        api_element.default_cell = default_cell
+        cell_properties = list(default_cell.table_cell_properties(False))
+        for prop_name, _ in cell_properties:
+            parser_class = self.docx_parser.factory.get_property_parser(prop_name)
+            if parser_class:
+                parser = parser_class(self.docx_parser)
+                parser.parse(xml_element.cell_properties, default_cell)
+
+
+class FitTextParser(SimplePropertyParser):
+    property_name = 'fit_text'
+
+
+class IndentParser(SimplePropertyParser):
+    property_name = 'indent'
+
+
+class LayoutParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        layout = xml_element.layout
+        if layout == 'autofit':
+            layout = 'auto'
+        api_element.layout = layout
+
+
+class PaddingBottomParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.padding_bottom = xml_element.margin_bottom
+
+
+class PaddingLeftParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.padding_left = xml_element.margin_left
+
+
+class PaddingRightParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.padding_right = xml_element.margin_right
+
+
+class PaddingTopParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        api_element.padding_top = xml_element.margin_top
+
+
+class RowBandSizeParser(SimplePropertyParser):
+    property_name = 'row_band_size'
+
+
+class VAlignParser(SimplePropertyParser):
+    property_name = 'valign'
+
+
+class WidthParser(SimplePropertyParser):
+    property_name = 'width'
+
+
+class WrapTextParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        no_wrap = xml_element.no_wrap
+        if no_wrap is not None:
+            api_element.wrap_text = not no_wrap
+
+
+class RowPropertiesParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        default_row = api.TableRowProperties()
+        api_element.default_row = default_row
+        for prop_name, _ in default_row.table_row_properties(False):
+            parser_class = self.docx_parser.factory.get_property_parser(prop_name)
+            if parser_class:
+                parser = parser_class(self.docx_parser)
+                parser.parse(xml_element.row_properties, default_row)
+
+
+class RowHeightParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        if xml_element.height_type == 'exact':
+            api_element.height = xml_element.height
+
+
+class RowIsHeaderParser(SimplePropertyParser):
+    property_name = 'is_header'
+
+
+class RowMinHeightParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        height_type = xml_element.height_type
+        if height_type is None or height_type == 'atLeast':
+            api_element.min_height = xml_element.height
+
+
+class RowSplitParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        cant_split = xml_element.cant_split
+        if cant_split is not None:
+            api_element.split = not cant_split
+
+
+DocxParserFactory.register('alignment',                 AlignmentParser)
+DocxParserFactory.register('border_inside_horizontal',  BorderInsideHorizontalParser)
+DocxParserFactory.register('border_inside_vertical',    BorderInsideVerticalParser)
+DocxParserFactory.register('cell_padding_bottom',       CellPaddingBottomParser)
+DocxParserFactory.register('cell_padding_left',         CellPaddingLeftParser)
+DocxParserFactory.register('cell_padding_right',        CellPaddingRightParser)
+DocxParserFactory.register('cell_padding_top',          CellPaddingTopParser)
+DocxParserFactory.register('cell_spacing',              CellSpacingParser)
+DocxParserFactory.register('col_band_size',             ColBandSizeParser)
+DocxParserFactory.register('colspan',                   ColSpanParser)
+DocxParserFactory.register('default_cell',              DefaultCellParser)
+DocxParserFactory.register('default_row',               RowPropertiesParser)
+DocxParserFactory.register('fit_text',                  FitTextParser)
+DocxParserFactory.register('height',                    RowHeightParser)
+DocxParserFactory.register('indent',                    IndentParser)
+DocxParserFactory.register('is_header',                 RowIsHeaderParser)
+DocxParserFactory.register('layout',                    LayoutParser)
+DocxParserFactory.register('min_height',                RowMinHeightParser)
+DocxParserFactory.register('padding_bottom',            PaddingBottomParser)
+DocxParserFactory.register('padding_left',              PaddingLeftParser)
+DocxParserFactory.register('padding_right',             PaddingRightParser)
+DocxParserFactory.register('padding_top',               PaddingTopParser)
+DocxParserFactory.register('row_band_size',             RowBandSizeParser)
+DocxParserFactory.register('split',                     RowSplitParser)
+DocxParserFactory.register('valign',                    VAlignParser)
+DocxParserFactory.register('width',                     WidthParser)
+DocxParserFactory.register('wrap_text',                 WrapTextParser)

@@ -11,7 +11,7 @@ class DocxStyleLookup(etree.PythonElementClassLookup):
             'character': styles.DocxCharacterStyle,
             'numbering': styles.DocxNumberingStyle,
             'paragraph': styles.DocxParagraphStyle,
-            'table': styles.DocxTableStyle,
+            'table': tables.DocxTableStyle,
         }
         style_tag = f"{{{NAMESPACES['w']}}}style"
         style_type_name = f"{{{NAMESPACES['w']}}}type"
@@ -51,3 +51,10 @@ def a(tag):
 def w(tag):
     """Shortcut function to build a namespace-qualified element name"""
     return etree.QName(NAMESPACES['w'], tag)
+
+
+def normalize_element_name(name):
+    """Change an element name from w:name to {w]name"""
+    for ns in NAMESPACES:
+        name = name.replace(f'{ns}:', f'{{{NAMESPACES[ns]}}}')
+    return name

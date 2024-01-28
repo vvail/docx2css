@@ -4,10 +4,10 @@ from collections.abc import Mapping
 from lxml import etree
 
 from docx2css.api import Border, TextDecoration
-from docx2css.ooxml import w, wordml
+from docx2css.ooxml import ct, w, wordml
 from docx2css.ooxml.constants import CONTENT_TYPE, NAMESPACES
 from docx2css.ooxml.simple_types import (
-    ST_Border, ST_FontFamily, ST_Underline, ST_Jc
+    ST_Border, ST_FontFamily, ST_Underline
 )
 from docx2css.utils import AutoLength, CSSColor, CssUnit, Percentage
 
@@ -103,23 +103,22 @@ class DocxStyle(etree.ElementBase):
 
 class RPrProxy(etree.ElementBase):
 
-    @property
-    def all_caps(self):
-        element = self.find('.//w:caps', namespaces=NAMESPACES)
-        if isinstance(element, AllCapsProperty):
-            return element.prop_value
+    all_caps = ct.Boolean('w:rPr/w:caps')
+    """This element specifies that any lowercase characters in this text run 
+    shall be formatted for display only as their capital letter character 
+    equivalents. 
+    
+    This element shall not be present with the smallCaps (§17.3.2.33) property 
+    on the same run, since they are mutually exclusive in terms of appearance.
+    """
 
-    @property
-    def background_color(self):
-        element = self.find('.//w:shd', namespaces=NAMESPACES)
-        if isinstance(element, ShadingProperty):
-            return element.prop_value
+    background_color = ct.Shading('w:rPr/w:shd')
 
-    @property
-    def bold(self):
-        element = self.find('.//w:b', namespaces=NAMESPACES)
-        if isinstance(element, BoldProperty):
-            return element.prop_value
+    bold = ct.Boolean('w:rPr/w:b')
+    """This element specifies whether the bold property shall be applied to all 
+    non-complex script characters in the contents of this run when displayed in 
+    a document.
+    """
 
     @property
     def border(self):
@@ -127,17 +126,23 @@ class RPrProxy(etree.ElementBase):
         if isinstance(element, BorderProperty):
             return element.prop_value
 
-    @property
-    def double_strike(self):
-        element = self.find('.//w:dstrike', namespaces=NAMESPACES)
-        if isinstance(element, DStrikeProperty):
-            return element.prop_value
+    double_strike = ct.Boolean('w:rPr/w:dstrike')
+    """This element specifies that the contents of this run shall be displayed 
+    with two horizontal lines through each character displayed on the line.
+    
+    This element shall not be present with the strike (§17.3.2.37) property on 
+    the same run, since they are mutually exclusive in terms of appearance.
+    """
 
-    @property
-    def emboss(self):
-        element = self.find('.//w:emboss', namespaces=NAMESPACES)
-        if isinstance(element, EmbossProperty):
-            return element.prop_value
+    emboss = ct.Boolean('w:rPr/w:emboss')
+    """This element specifies that the contents of this run should be displayed 
+    as if embossed, which makes text appear as if it is raised off the page in 
+    relief.
+    
+    This element shall not be present with either the imprint (§17.3.2.18) or 
+    outline (§17.3.2.23) properties on the same run, since they are mutually 
+    exclusive in terms of appearance.
+    """
 
     @property
     def font_color(self):
@@ -151,17 +156,18 @@ class RPrProxy(etree.ElementBase):
         if element is not None:
             return element.prop_value
 
-    @property
-    def font_kerning(self):
-        element = self.find('.//w:kern', namespaces=NAMESPACES)
-        if isinstance(element, FontKerningProperty):
-            return element.prop_value
+    font_kerning = ct.HalfPointMeasure('w:rPr/w:kern')
+    """This element specifies whether font kerning shall be applied to the 
+    contents of this run. If it is specified, then kerning shall be 
+    automatically adjusted when displaying characters in this run as needed.
+    
+    The val attribute specifies the smallest font size which shall have its 
+    kerning automatically adjusted if this setting is specified. If the font 
+    size in the sz element (§17.3.2.38) is smaller than this value, then no font 
+    kerning shall be performed. 
+    """
 
-    @property
-    def font_size(self):
-        element = self.find('.//w:sz', namespaces=NAMESPACES)
-        if element is not None:
-            return element.prop_value
+    font_size = ct.HalfPointMeasure('w:rPr/w:sz')
 
     @property
     def highlight(self):
@@ -175,11 +181,7 @@ class RPrProxy(etree.ElementBase):
         if isinstance(element, ImprintProperty):
             return element.prop_value
 
-    @property
-    def italics(self):
-        element = self.find('.//w:i', namespaces=NAMESPACES)
-        if isinstance(element, ItalicProperty):
-            return element.prop_value
+    italics = ct.Boolean('w:rPr/w:i')
 
     @property
     def letter_spacing(self):
@@ -223,26 +225,27 @@ class RPrProxy(etree.ElementBase):
         if isinstance(element, UnderlineProperty):
             return element.prop_value
 
-    @property
-    def vertical_align(self):
-        element = self.find('.//w:vertAlign', namespaces=NAMESPACES)
-        if isinstance(element, VerticalAlignProperty):
-            return element.prop_value
+    vanish = ct.Boolean('w:rPr/w:vanish')
+    """This element specifies whether the contents of this run shall be hidden 
+    from display at display time in a document.
+    """
 
-    @property
-    def visible(self):
-        element = self.find('.//w:vanish', namespaces=NAMESPACES)
-        if isinstance(element, VanishProperty):
-            return element.prop_value
+    vertical_align = ct.VerticalJustification('w:rPr/w:vertAlign')
+    """This element specifies the alignment which shall be applied to the 
+    contents of this run in relation to the default appearance of the run's 
+    text. This allows the text to be repositioned as subscript or superscript 
+    without altering the font size of the run properties.
+    """
 
 
 class PPrProxy(etree.ElementBase):
-
-    @property
-    def border_bottom(self):
-        element = self.find('.//w:pBdr/w:bottom', namespaces=NAMESPACES)
-        if isinstance(element, BorderBottomProperty):
-            return element.prop_value
+    background_color = ct.Shading('w:pPr/w:shd')
+    # @property
+    # def border_bottom(self):
+    #     element = self.find('.//w:pBdr/w:bottom', namespaces=NAMESPACES)
+    #     if isinstance(element, BorderBottomProperty):
+    #         return element.prop_value
+    border_bottom = ct.BorderDescriptor('w:pPr/w:pBdr/w:bottom')
 
     @property
     def border_left(self):
@@ -322,11 +325,14 @@ class PPrProxy(etree.ElementBase):
         if isinstance(element, PageBreakBeforeProperty):
             return element.prop_value
 
-    @property
-    def text_align(self):
-        element = self.find('.//w:jc', namespaces=NAMESPACES)
-        if isinstance(element, JustificationProperty):
-            return element.prop_value
+    style = ct.String('w:pPr/w:pStyle')
+
+    # @property
+    # def text_align(self):
+    #     element = self.find('.//w:jc', namespaces=NAMESPACES)
+    #     if isinstance(element, JustificationProperty):
+    #         return element.prop_value
+    text_align = ct.Justification('w:pPr/w:jc')
 
     @property
     def text_indent(self):
@@ -353,10 +359,6 @@ class DocxNumberingStyle(DocxStyle, PPrProxy):
     pass
 
 
-class DocxTableStyle(DocxStyle):
-    pass
-
-
 @wordml('docDefaults')
 class DocDefaults(RPrProxy, PPrProxy):
 
@@ -367,6 +369,8 @@ class DocDefaults(RPrProxy, PPrProxy):
     @styles.setter
     def styles(self, styles):
         setattr(self, '_styles', styles)
+
+    font_size = ct.HalfPointMeasure('w:rPrDefault/w:rPr/w:sz')
 
 
 class DocxPropertyAdapter(etree.ElementBase, ABC):
@@ -481,13 +485,13 @@ class AllCapsProperty(DocxPropertyAdapter):
         return self.get_toggle_property('caps')
 
 
-@wordml('b')
-class BoldProperty(DocxPropertyAdapter):
-    prop_name = 'bold'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('b')
+# @wordml('b')
+# class BoldProperty(DocxPropertyAdapter):
+#     prop_name = 'bold'
+#
+#     @property
+#     def prop_value(self):
+#         return self.get_toggle_property('b')
 
 
 @wordml('bdr')
@@ -592,22 +596,22 @@ class BorderTopProperty(BorderProperty):
     direction = 'top'
 
 
-@wordml('dstrike')
-class DStrikeProperty(DocxPropertyAdapter):
-    prop_name = 'double_strike'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('dstrike')
-
-
-@wordml('emboss')
-class EmbossProperty(DocxPropertyAdapter):
-    prop_name = 'emboss'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('emboss')
+# @wordml('dstrike')
+# class DStrikeProperty(DocxPropertyAdapter):
+#     prop_name = 'double_strike'
+#
+#     @property
+#     def prop_value(self):
+#         return self.get_toggle_property('dstrike')
+#
+#
+# @wordml('emboss')
+# class EmbossProperty(DocxPropertyAdapter):
+#     prop_name = 'emboss'
+#
+#     @property
+#     def prop_value(self):
+#         return self.get_toggle_property('emboss')
 
 
 @wordml('color')
@@ -619,14 +623,14 @@ class FontColorProperty(ColorPropertyAdapter):
         return self.get_color()
 
 
-@wordml('kern')
-class FontKerningProperty(DocxPropertyAdapter):
-    prop_name = 'font_kerning'
-
-    @property
-    def prop_value(self):
-        value = int(self.get(w('val'))) / 2  # Value is in half-points
-        return value != 0
+# @wordml('kern')
+# class FontKerningProperty(DocxPropertyAdapter):
+#     prop_name = 'font_kerning'
+#
+#     @property
+#     def prop_value(self):
+#         value = int(self.get(w('val'))) / 2  # Value is in half-points
+#         return value != 0
 
 
 @wordml('rFonts')
@@ -796,29 +800,29 @@ class IndentProperty(DocxPropertyAdapter):
             return CssUnit(int(right), 'twip')
 
 
-@wordml('i')
-class ItalicProperty(DocxPropertyAdapter):
-    prop_name = 'italics'
+# @wordml('i')
+# class ItalicProperty(DocxPropertyAdapter):
+#     prop_name = 'italics'
+#
+#     @property
+#     def prop_value(self):
+#         return self.get_toggle_property('i')
 
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('i')
 
-
-@wordml('jc')
-class JustificationProperty(DocxPropertyAdapter):
-
-    @property
-    def prop_name(self):
-        if self.getparent().tag == w('pPr'):
-            return 'text_align'
-        else:
-            return 'alignment'
-
-    @property
-    def prop_value(self):
-        attr_value = self.get(w('val'))
-        return ST_Jc.css_value(attr_value)
+# @wordml('jc')
+# class JustificationProperty(DocxPropertyAdapter):
+#
+#     @property
+#     def prop_name(self):
+#         if self.getparent().tag == w('pPr'):
+#             return 'text_align'
+#         else:
+#             return 'alignment'
+#
+#     @property
+#     def prop_value(self):
+#         attr_value = self.get(w('val'))
+#         return ST_Jc.css_value(attr_value)
 
 
 @wordml('keepLines')
@@ -925,16 +929,6 @@ class StrikeProperty(DocxPropertyAdapter):
         return self.get_toggle_property('strike')
 
 
-@wordml('sz')
-class SizeProperty(DocxPropertyAdapter):
-    prop_name = 'font_size'
-
-    @property
-    def prop_value(self):
-        sz = int(self.get(w('val')))
-        return CssUnit(sz / 2, 'pt')
-
-
 @wordml('u')
 class UnderlineProperty(ColorPropertyAdapter):
     color_attribute = 'color'
@@ -950,22 +944,22 @@ class UnderlineProperty(ColorPropertyAdapter):
         return value
 
 
-@wordml('vanish')
-class VanishProperty(DocxPropertyAdapter):
-    prop_name = 'visible'
+# @wordml('vanish')
+# class VanishProperty(DocxPropertyAdapter):
+#     prop_name = 'visible'
+#
+#     @property
+#     def prop_value(self):
+#         return self.get_toggle_property('vanish')
 
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('vanish')
 
-
-@wordml('vertAlign')
-class VerticalAlignProperty(DocxPropertyAdapter):
-    prop_name = 'vertical_align'
-
-    @property
-    def prop_value(self):
-        return self.get(w('val'))
+# @wordml('vertAlign')
+# class VerticalAlignProperty(DocxPropertyAdapter):
+#     prop_name = 'vertical_align'
+#
+#     @property
+#     def prop_value(self):
+#         return self.get(w('val'))
 
 
 @wordml('widowControl')

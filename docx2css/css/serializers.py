@@ -55,16 +55,6 @@ class CssSerializerFactory:
             raise ValueError(f'No serializer registered for "{prop_name}"')
         return creator(style_serializer, prop_value)
 
-    # def get_property_serializers(self,
-    #                              style_serializer: 'CssBlockSerializer',
-    #                              property_container: PropertyContainer):
-    #     """Get the serializers associated with each of the properties of
-    #     the property_container object. If none is provide, the default
-    #     will be self.style
-    #     """
-    #     for prop in property_container.properties():
-    #         yield self.get_property_serializer(style_serializer, prop)
-
 
 ########################################################################
 #                                                                      #
@@ -842,9 +832,13 @@ class TableConditionalFormatting(CssTablePropertySerializer, ABC):
         default_cell = self.property_value.default_cell
         default_cell_css_rule = self.serializer.get_or_create_rule(selector)
         default_row = self.property_value.default_row
-        if default_row:
+        row_selector = self.row_selector()
+        # Row selector can sometimes be None, eg. when dealing with a table
+        # conditional formatting first_col where it doesn't make sense to have a
+        # row selector
+        if default_row and row_selector:
             row_properties = default_row.table_row_properties(True)
-            self.serializer.serialize_properties(self.row_selector(), row_properties)
+            self.serializer.serialize_properties(row_selector, row_properties)
         if default_cell:
             cell_properties = default_cell.table_cell_properties(True)
             for k, v in cell_properties:
@@ -1310,8 +1304,6 @@ class CssBlockSerializer(ABC, metaclass=ABCMeta):
         for prop_tuple in properties:
             serializer = self.factory.get_property_serializer(self, *prop_tuple)
             serializer.set_css_style(css_style)
-        # for prop in self.factory.get_property_serializers(self, container):
-        #     prop.set_css_style(css_style)
 
     def css_current_selector(self):
         """Get the selector for the current style only"""
