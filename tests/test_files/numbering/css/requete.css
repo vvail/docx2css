@@ -45,8 +45,8 @@ h2 {
 }
 h3 {
     font-weight: bold;
-    break-after: avoid;
     margin-left: 0.5in;
+    break-after: avoid;
     margin-top: 18pt;
 }
 p.align-right {
@@ -94,9 +94,9 @@ p.center {
 }
 p.citation {
     font-size: 11pt;
-    font-style: italic;
     margin-left: 0.5in;
     margin-right: 0.5in;
+    font-style: italic;
 }
 p.conclusions {
     margin-left: 0.5in;
@@ -113,8 +113,8 @@ p.enum {
     counter-reset: counter3-L1;
 }
 p.float {
-    margin-bottom: 5pt;
     margin-left: 0.5in;
+    margin-bottom: 5pt;
     margin-top: 5pt;
     text-indent: -0.5in;
 }
@@ -193,8 +193,8 @@ p.signature-nom {
     margin-top: 0;
 }
 p.tab {
-    margin-bottom: 5pt;
     margin-left: 0.25in;
+    margin-bottom: 5pt;
     margin-top: 5pt;
 }
 table {

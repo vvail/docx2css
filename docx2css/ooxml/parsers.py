@@ -114,41 +114,6 @@ class DocxParser:
                 self.__paragraph_counters[xml_level.paragraph_style] = counter
         return counter_definition
 
-    # def parse_level(self, xml_element, counter_list):
-    #     counter_format = ST_NumberFormat.css_value(xml_element.number_format)
-    #     if xml_element.is_legal_format:
-    #         counter_format = 'decimal'
-    #
-    #     level = LevelDefinition(
-    #         counter_list=counter_list,
-    #         number=xml_element.level_number,
-    #         format=counter_format,
-    #         start=xml_element.level_start,
-    #         text=xml_element.level_text,
-    #         paragraph_style=xml_element.paragraph_style,
-    #         justification=ST_Jc.css_value(xml_element.justification),
-    #         suffix=xml_element.level_suffix,
-    #     )
-    #     # Level restart logic: If value is 0 or higher than level, the
-    #     # counter never restarts. If there is no value, it restarts at
-    #     # previous level
-    #     restart = xml_element.level_restart
-    #     if restart != 0:
-    #         if restart is None:
-    #             restart = level.number - 1
-    #         else:
-    #             # Account for the fact that the xml value is one-based
-    #             restart -= 1
-    #         previous = counter_list.levels.get(restart, None)
-    #         if previous is not None:
-    #             previous.restart.add(level.number)
-    #
-    #     # self.parse_descendants(xml_element, level)
-    #     props = tuple(f.name for f in fields(ParagraphFormatting))
-    #     self.parse_xml_style(xml_element, level, props)
-    #
-    #     return level
-
     def parse_level(self, xml_element, counter_definition):
         number = xml_element.level_number
         name = f'{counter_definition.name}-L{number}'
@@ -366,8 +331,12 @@ class FontSizeParser(SimplePropertyParser):
     property_name = 'font_size'
 
 
-class HighlightParser(SimplePropertyParser):
-    property_name = 'highlight'
+class HighlightParser(DocxPropertyParser):
+
+    def parse(self, xml_element, api_element):
+        highlight_color = xml_element.highlight
+        if highlight_color is not None:
+            api_element.highlight = highlight_color.lower()
 
 
 class ImprintParser(SimplePropertyParser):
@@ -473,6 +442,14 @@ class CounterParser(DocxPropertyParser):
         api_element.counter = counter
 
 
+class ParagraphIndentLeftParser(SimplePropertyParser):
+    property_name = 'indent_left'
+
+
+class ParagraphIndentRightParser(SimplePropertyParser):
+    property_name = 'indent_right'
+
+
 class KeepTogetherParser(SimplePropertyParser):
     property_name = 'keep_together'
 
@@ -530,6 +507,8 @@ DocxParserFactory.register('border_left',       BorderLeftParser)
 DocxParserFactory.register('border_top',        BorderTopParser)
 DocxParserFactory.register('border_right',      BorderRightParser)
 DocxParserFactory.register('counter',           CounterParser)
+DocxParserFactory.register('indent_left',       ParagraphIndentLeftParser)
+DocxParserFactory.register('indent_right',      ParagraphIndentRightParser)
 DocxParserFactory.register('keep_together',     KeepTogetherParser)
 DocxParserFactory.register('keep_with_next',    KeepWithNextParser)
 DocxParserFactory.register('line_height',       LineHeightParser)

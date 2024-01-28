@@ -67,9 +67,9 @@ h1 {
     padding-top: 6pt;
     font-family: Arial, sans-serif;
     font-size: 14pt;
+    margin-left: -0.25in;
     break-inside: avoid;
     break-after: avoid;
-    margin-left: -0.25in;
     text-align: center;
     counter-reset: counter1-L1;
 }
@@ -77,10 +77,10 @@ h2 {
     text-transform: uppercase;
     font-weight: bold;
     font-family: Arial, sans-serif;
+    margin-left: -0.25in;
     break-inside: avoid;
     break-after: avoid;
     margin-bottom: 12pt;
-    margin-left: -0.25in;
     margin-top: 24pt;
     text-align: start;
 }

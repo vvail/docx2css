@@ -2,7 +2,7 @@ from lxml import etree
 
 from docx2css.ooxml import w, wordml
 from docx2css.ooxml.constants import NAMESPACES
-from docx2css.ooxml.styles import PPrProxy, RPrProxy
+from docx2css.ooxml.styles import PPrMixin, RPrMixin
 
 
 @wordml('abstractNum')
@@ -69,7 +69,7 @@ class Num(etree.ElementBase):
 
 
 @wordml('lvl')
-class Level(PPrProxy, RPrProxy):
+class Level(PPrMixin, RPrMixin, etree.ElementBase):
     abstract_numbering = None
 
     @property

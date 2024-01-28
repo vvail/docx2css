@@ -408,7 +408,7 @@ class CounterSerializer(CssPropertySerializer):
     def handle_margin_left(self, css_style_before, css_style):
         counter = self.property_value
         paragraph = self.serializer.style
-        margins = (paragraph.margin_left, counter.margin_left)
+        margins = (paragraph.indent_left, counter.indent_left)
         paragraph_margin_left = next((x for x in margins if x is not None), None)
         if paragraph_margin_left is not None:
             css_style['margin-left'] = f'{paragraph_margin_left.inches:.2f}in'
@@ -1161,6 +1161,8 @@ FACTORY.register('height', RowHeightSerializer)
 FACTORY.register('highlight', HighlightSerializer)
 FACTORY.register('imprint', ImprintSerializer)
 FACTORY.register('indent', TableIndentSerializer)
+FACTORY.register('indent_left', MarginLeftSerializer)
+FACTORY.register('indent_right', MarginRightSerializer)
 FACTORY.register('is_header', RowIsHeaderSerializer)
 FACTORY.register('italics', ItalicsSerializer)
 FACTORY.register('keep_together', BreakInsideSerializer)

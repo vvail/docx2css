@@ -1,15 +1,14 @@
-from abc import ABC, abstractmethod
 from collections.abc import Mapping
 
 from lxml import etree
 
 from docx2css.api import Border, TextDecoration
 from docx2css.ooxml import ct, w, wordml
-from docx2css.ooxml.constants import CONTENT_TYPE, NAMESPACES
+from docx2css.ooxml.constants import CONTENT_TYPE
 from docx2css.ooxml.simple_types import (
-    ST_Border, ST_FontFamily, ST_Underline
+    ST_Border
 )
-from docx2css.utils import AutoLength, CSSColor, CssUnit, Percentage
+from docx2css.utils import CSSColor, CssUnit
 
 
 class Styles(Mapping):
@@ -101,9 +100,9 @@ class DocxStyle(etree.ElementBase):
         return self._children_styles
 
 
-class RPrProxy(etree.ElementBase):
+class RPrMixin:
 
-    all_caps = ct.Boolean('w:rPr/w:caps')
+    all_caps: bool = ct.Boolean('w:rPr/w:caps')
     """This element specifies that any lowercase characters in this text run 
     shall be formatted for display only as their capital letter character 
     equivalents. 
@@ -112,7 +111,8 @@ class RPrProxy(etree.ElementBase):
     on the same run, since they are mutually exclusive in terms of appearance.
     """
 
-    background_color = ct.Shading('w:rPr/w:shd')
+    background_color: CSSColor = ct.Shading('w:rPr/w:shd')
+    """This element specifies the shading applied to the contents of the run."""
 
     bold = ct.Boolean('w:rPr/w:b')
     """This element specifies whether the bold property shall be applied to all 
@@ -120,13 +120,23 @@ class RPrProxy(etree.ElementBase):
     a document.
     """
 
-    @property
-    def border(self):
-        element = self.find('.//w:bdr', namespaces=NAMESPACES)
-        if isinstance(element, BorderProperty):
-            return element.prop_value
+    border: Border = ct.BorderDescriptor('w:rPr/w:bdr')
+    """This element specifies information about the border applied to the text 
+    in the current run.
+    
+    The first piece of information specified by the bdr element is that the 
+    current shall have a border when displayed. This information is specified 
+    simply by the presence of the bdr element in run's properties.
+    
+    The second piece of information concerns the set of runs which share the 
+    current run border. This is determined based on the attributes on the bdr 
+    element. If the set of attribute values specifies on two adjacent runs is
+    identical, then those two runs shall be considered to be part of the same 
+    run border group and rendered within the same set of borders in the 
+    document.
+    """
 
-    double_strike = ct.Boolean('w:rPr/w:dstrike')
+    double_strike: bool = ct.Boolean('w:rPr/w:dstrike')
     """This element specifies that the contents of this run shall be displayed 
     with two horizontal lines through each character displayed on the line.
     
@@ -134,7 +144,7 @@ class RPrProxy(etree.ElementBase):
     the same run, since they are mutually exclusive in terms of appearance.
     """
 
-    emboss = ct.Boolean('w:rPr/w:emboss')
+    emboss: bool = ct.Boolean('w:rPr/w:emboss')
     """This element specifies that the contents of this run should be displayed 
     as if embossed, which makes text appear as if it is raised off the page in 
     relief.
@@ -144,19 +154,17 @@ class RPrProxy(etree.ElementBase):
     exclusive in terms of appearance.
     """
 
-    @property
-    def font_color(self):
-        element = self.find('.//w:color', namespaces=NAMESPACES)
-        if isinstance(element, FontColorProperty):
-            return element.prop_value
+    font_color: CSSColor = ct.Shading('w:rPr/w:color')
+    """This element specifies the color which shall be used to display the 
+    contents of this run in the document. 
+    """
 
-    @property
-    def font_family(self):
-        element = self.find('.//w:rFonts', namespaces=NAMESPACES)
-        if element is not None:
-            return element.prop_value
+    font_family: str = ct.FontDescriptor('w:rPr/w:rFonts')
+    """This element specifies the fonts which shall be used to display the text 
+    contents of this run.
+    """
 
-    font_kerning = ct.HalfPointMeasure('w:rPr/w:kern')
+    font_kerning: CssUnit = ct.HalfPointMeasure('w:rPr/w:kern')
     """This element specifies whether font kerning shall be applied to the 
     contents of this run. If it is specified, then kerning shall be 
     automatically adjusted when displaying characters in this run as needed.
@@ -167,63 +175,101 @@ class RPrProxy(etree.ElementBase):
     kerning shall be performed. 
     """
 
-    font_size = ct.HalfPointMeasure('w:rPr/w:sz')
+    font_size: CssUnit = ct.HalfPointMeasure('w:rPr/w:sz')
 
-    @property
-    def highlight(self):
-        element = self.find('.//w:highlight', namespaces=NAMESPACES)
-        if isinstance(element, HighlightProperty):
-            return element.prop_value
+    highlight: str = ct.String('w:rPr/w:highlight')
+    """This element specifies a highlighting color which is applied as a 
+    background behind the contents of this run.
+    
+    If this run has any background shading specified using the shd element 
+    (§17.3.2.32), then the background shading shall be superseded by the 
+    highlighting color when the contents of this run are displayed.
+    """
 
-    @property
-    def imprint(self):
-        element = self.find('.//w:imprint', namespaces=NAMESPACES)
-        if isinstance(element, ImprintProperty):
-            return element.prop_value
+    imprint: bool = ct.Boolean('w:rPr/w:imprint')
+    """This element specifies that the contents of this run should be displayed 
+    as if imprinted, which makes text appear to be imprinted or pressed into 
+    page (also referred to as 'engrave').
+    
+    This element shall not be present with either the emboss (§17.3.2.13) or 
+    outline (§17.3.2.23) properties on the same run, since they are mutually 
+    exclusive in terms of appearance.
+    """
 
-    italics = ct.Boolean('w:rPr/w:i')
+    italics: bool = ct.Boolean('w:rPr/w:i')
+    """This element specifies whether the italic property should be applied to 
+    all non-complex script characters in the contents of this run when displayed 
+    in a document.
+    """
 
-    @property
-    def letter_spacing(self):
-        element = self.find('.//w:spacing', namespaces=NAMESPACES)
-        if isinstance(element, FontSpacingProperty):
-            return element.letter_spacing()
+    letter_spacing: CssUnit = ct.TwipMeasure('w:rPr/w:spacing')
+    """This element specifies the amount of character pitch which shall be added 
+    or removed after each character in this run before the following character 
+    is rendered in the document. This property has an effect equivalent to
+    the additional character pitched added by a document grid applied to the 
+    contents of a run. 
+    """
 
-    @property
-    def outline(self):
-        element = self.find('.//w:outline', namespaces=NAMESPACES)
-        if isinstance(element, OutlineProperty):
-            return element.prop_value
+    outline: bool = ct.Boolean('w:rPr/w:outline')
+    """This element specifies that the contents of this run should be displayed 
+    as if they have an outline, by drawing a one pixel wide border around the 
+    inside and outside borders of each character glyph in the run.
+    
+    This element shall not be present with either the emboss (§17.3.2.13) or 
+    imprint (§17.3.2.18) properties on the same run, since they are mutually 
+    exclusive in terms of appearance.
+    """
 
-    @property
-    def position(self):
-        element = self.find('.//w:position', namespaces=NAMESPACES)
-        if isinstance(element, PositionProperty):
-            return element.prop_value
+    position: int = ct.HalfPointMeasure('w:rPr/w:position')
+    """This element specifies the amount by which text shall be raised or 
+    lowered for this run in relation to the default baseline of the surrounding 
+    non-positioned text. This allows the text to be repositioned without 
+    altering the font size of the contents.
+    
+    If the val attribute is positive, then the parent run shall be raised above 
+    the baseline of the surrounding text by the specified number of half-points. 
+    If the val attribute is negative, then the parent run shall be lowered below
+    the baseline of the surrounding text by the specified number of half-points.
+    """
 
-    @property
-    def shadow(self):
-        element = self.find('.//w:shadow', namespaces=NAMESPACES)
-        if isinstance(element, ShadowProperty):
-            return element.prop_value
+    shadow: bool = ct.Boolean('w:rPr/w:shadow')
+    """This element specifies that the contents of this run shall be displayed 
+    as if each character has a shadow. For left-to-right text, the shadow is 
+    beneath the text and to its right; for right-to-left text, the shadow is 
+    beneath the text and to its left.
+    
+    This element shall not be present with either the emboss (§17.3.2.13) or 
+    imprint (§17.3.2.18) properties on the same run, since they are mutually 
+    exclusive in terms of appearance.
+    """
 
-    @property
-    def small_caps(self):
-        element = self.find('.//w:smallCaps', namespaces=NAMESPACES)
-        if isinstance(element, SmallCapsProperty):
-            return element.prop_value
+    small_caps: bool = ct.Boolean('w:rPr/w:smallCaps')
+    """This element specifies that all small letter characters in this text run 
+    shall be formatted for display only as their capital letter character 
+    equivalents in a font size two points smaller than the actual font size 
+    specified for this text. This property does not affect any non-alphabetic 
+    character in this run, and does not change the Unicode character for 
+    lowercase text, only the method in which it is displayed. If this font 
+    cannot be made two point smaller than the current size, then it shall be 
+    displayed as the smallest possible font size in capital letters.
+    
+    This element shall not be present with the caps (§17.3.2.5) property on the 
+    same run, since they are mutually exclusive in terms of appearance.
+    """
 
-    @property
-    def strike(self):
-        element = self.find('.//w:strike', namespaces=NAMESPACES)
-        if isinstance(element, StrikeProperty):
-            return element.prop_value
+    strike: bool = ct.Boolean('w:rPr/w:strike')
+    """This element specifies that the contents of this run shall be displayed 
+    with a single horizontal line through the center of the line. 
+    
+    This element shall not be present with the dstrike (§17.3.2.9) property on 
+    the same run, since they are mutually exclusive in terms of appearance.
+    """
 
-    @property
-    def underline(self):
-        element = self.find('.//w:u', namespaces=NAMESPACES)
-        if isinstance(element, UnderlineProperty):
-            return element.prop_value
+    underline: TextDecoration = ct.UnderlineDescriptor('w:rPr/w:u')
+    """This element specifies that the contents of this run should be displayed 
+    along with an underline appearing directly below the character height (less 
+    all spacing above and below the characters on the line).
+    """
 
     vanish = ct.Boolean('w:rPr/w:vanish')
     """This element specifies whether the contents of this run shall be hidden 
@@ -238,129 +284,230 @@ class RPrProxy(etree.ElementBase):
     """
 
 
-class PPrProxy(etree.ElementBase):
-    background_color = ct.Shading('w:pPr/w:shd')
-    # @property
-    # def border_bottom(self):
-    #     element = self.find('.//w:pBdr/w:bottom', namespaces=NAMESPACES)
-    #     if isinstance(element, BorderBottomProperty):
-    #         return element.prop_value
-    border_bottom = ct.BorderDescriptor('w:pPr/w:pBdr/w:bottom')
+class PPrMixin:
+    background_color: CSSColor = ct.Shading('w:pPr/w:shd')
+    """This element specifies the shading applied to the contents of the 
+    paragraph.
+    """
 
-    @property
-    def border_left(self):
-        element = self.find('.//w:pBdr/w:left', namespaces=NAMESPACES)
-        if isinstance(element, BorderLeftProperty):
-            return element.prop_value
+    border_bottom: Border = ct.BorderDescriptor('w:pPr/w:pBdr/w:bottom')
+    """This element specifies the border which shall be displayed below a set of 
+    paragraphs which have the same paragraph border settings.
+    
+    To determine if any two adjoining paragraphs shall have an individual top 
+    and bottom border or a between border, the set of borders on the two 
+    adjoining paragraphs are compared. If the border information on those two 
+    paragraphs is different, then the first paragraph shall use its bottom 
+    border and the following paragraph shall use its top border. Otherwise, the 
+    between border is used. If this border specifies a space attribute, that
+    value determines the space after the bottom of the text (ignoring any space 
+    below) which should be left before this border is drawn, specified in 
+    points.
+    
+    If this element is omitted on a given paragraph, its value is determined by 
+    the setting previously set at any level of the style hierarchy (i.e. that 
+    previous setting remains unchanged). If this setting is never specified in 
+    the style hierarchy, then no between border shall be applied below identical 
+    paragraphs.
+    """
 
-    @property
-    def border_top(self):
-        element = self.find('.//w:pBdr/w:top', namespaces=NAMESPACES)
-        if isinstance(element, BorderTopProperty):
-            return element.prop_value
+    border_left: Border = ct.BorderDescriptor('w:pPr/w:pBdr/w:left')
+    """This element specifies the border which shall be displayed on the left 
+    side of the page around the specified paragraph. This shall not change based 
+    on the paragraph direction.
+    
+    To determine if any two adjoining paragraphs should have a left border which 
+    spans the full line height or not, the left border shall be drawn between 
+    the top border or between border at the top (whichever would be rendered for 
+    the current paragraph), and the bottom border or between border at the 
+    bottom (whichever would be rendered for the current paragraph).
+    
+    If this element is omitted on a given paragraph, its value is determined by 
+    the setting previously set at any level of the style hierarchy (i.e. that 
+    previous setting remains unchanged). If this setting is never specified in 
+    the style hierarchy, then no left border shall be applied.
+    """
 
-    @property
-    def border_right(self):
-        element = self.find('.//w:pBdr/w:right', namespaces=NAMESPACES)
-        if isinstance(element, BorderRightProperty):
-            return element.prop_value
+    border_right: Border = ct.BorderDescriptor('w:pPr/w:pBdr/w:right')
+    """This element specifies the border which shall be displayed on the right 
+    side of the page around the specified paragraph. This shall not change based 
+    on the paragraph direction.
+    
+    To determine if any two adjoining paragraphs should have a right border 
+    which spans the full line height or not, the right border shall be drawn 
+    between the top border or between border at the top (whichever would be
+    rendered for the current paragraph), and the bottom border or between border 
+    at the bottom (whichever would be rendered for the current paragraph).
+    
+    If this element is omitted on a given paragraph, its value is determined by 
+    the setting previously set at any level of the style hierarchy (i.e. that 
+    previous setting remains unchanged). If this setting is never specified in 
+    the style hierarchy, then no right border shall be applied.
+    """
 
-    @property
-    def keep_together(self):
-        element = self.find('.//w:keepLines', namespaces=NAMESPACES)
-        if isinstance(element, KeepLinesTogetherProperty):
-            return element.prop_value
+    border_top: Border = ct.BorderDescriptor('w:pPr/w:pBdr/w:top')
+    """This element specifies the  border which shall be displayed above a set 
+    of paragraphs which have the same set of paragraph border settings.
+    
+    To determine if any two adjoining paragraphs shall have an individual top 
+    and bottom border or a between border, the set of borders on the two 
+    adjoining paragraphs are compared. If the border information on those two 
+    paragraphs is identical for all possible paragraphs borders, then the 
+    between border is displayed. Otherwise, the final paragraph shall use its 
+    bottom border and the following paragraph shall use its top border,
+    respectively. If this border specifies a space attribute, that value 
+    determines the space above the text (ignoring any spacing above) which 
+    should be left before this border is drawn, specified in points.
+    
+    If this element is omitted on a given paragraph, its value is determined by 
+    the setting previously set at any level of the style hierarchy (i.e. that 
+    previous setting remains unchanged). If this setting is never specified in 
+    the style hierarchy, then no between border shall be applied above identical 
+    paragraphs.
+    """
 
-    @property
-    def keep_with_next(self):
-        element = self.find('.//w:keepNext', namespaces=NAMESPACES)
-        if isinstance(element, KeepWithNextParagraphProperty):
-            return element.prop_value
+    indent_left = ct.ParagraphIndentLeft('w:pPr/w:ind')
+    """Specifies the indentation which shall be placed at the start of this 
+    paragraph – between the left text margin for this paragraph and the left 
+    edge of that paragraph's content in a left to right paragraph, and the right 
+    text margin and the right edge of that paragraph's text in a right to left 
+    paragraph. If the mirrorIndents property (§17.3.1.18) is specified for this 
+    paragraph, then this indent is used for the inside page edge - the right 
+    page edge for odd numbered pages and the left page edge for even numbered 
+    pages.
+    
+    If this attribute is omitted, its value shall be assumed to be zero.
+    
+    All other values for this element are relative to the leading text margin, 
+    Negative values are defined such that the text is moved past the text 
+    margin, positive values move the text inside the text margin. This value can 
+    be superseded for the first line only via use of the firstLine or hanging 
+    attributes.
+    """
 
-    @property
-    def line_height(self):
-        element = self.find('.//w:spacing', namespaces=NAMESPACES)
-        if isinstance(element, FontSpacingProperty):
-            return element.line_height()
+    indent_right = ct.ParagraphIndentRight('w:pPr/w:ind')
+    """Specifies the indentation which shall be placed at the end of this 
+    paragraph – between the right text margin for this paragraph and the right 
+    edge of that paragraph's content in a left to right paragraph, and the left 
+    text margin and the left edge of that paragraph's text in a right to left 
+    paragraph. 
+    
+    If this attribute is omitted, its value shall be assumed to be zero.
+    
+    All other values for this element are relative to the trailing text margin, 
+    Negative values are defined such that the text is moved past the text 
+    margin, positive values move the text inside the text margin.
+    """
 
-    @property
-    def margin_left(self):
-        element = self.find('.//w:ind', namespaces=NAMESPACES)
-        if isinstance(element, IndentProperty):
-            return element.margin_left()
+    keep_together: bool = ct.Boolean('w:pPr/w:keepLines')
+    """This element specifies that when rendering this document in a page view, 
+    all lines of this paragraph are maintained on a single page whenever 
+    possible.
+    
+    This means that if the contents of the current paragraph would normally span 
+    across two pages due to the placement of the paragraph's text, all lines in 
+    this paragraph shall be moved onto the next page to ensure they are 
+    displayed together. If this is not possible because all lines in the 
+    paragraph would exceed a single page in any case, then lines in this 
+    paragraph shall start on a new page, with page breaks as needed afterwards.
+    """
 
-    @property
-    def margin_right(self):
-        element = self.find('.//w:ind', namespaces=NAMESPACES)
-        if isinstance(element, IndentProperty):
-            return element.margin_right()
+    keep_with_next: bool = ct.Boolean('w:pPr/w:keepNext')
+    """This element specifies that when rendering this document in a paginated 
+    view, the contents of this paragraph are at least partly rendered on the 
+    same page as the following paragraph whenever possible.
+    
+    This means that if the contents of the current paragraph would normally be 
+    completely rendered on a different page than the following paragraph 
+    (because only one of the two paragraphs would fit on the remaining space on
+    the first page), then both paragraphs shall be rendered on a single page. 
+    This property can be chained between multiple paragraphs to ensure that all 
+    paragraphs are rendered on a single page without any intervening page
+    boundaries. If this is not possible the entire set of paragraphs that are 
+    grouped together using this property would exceed a single page in any case, 
+    then the set of "keep with next" paragraphs shall start on a new page, with 
+    page breaks as needed afterwards.
+    """
 
-    @property
-    def space_after(self):
-        element = self.find('.//w:spacing', namespaces=NAMESPACES)
-        if isinstance(element, FontSpacingProperty):
-            return element.margin_bottom()
+    line_height = ct.LineHeight('w:pPr/w:spacing')
+    """Specifies the amount of vertical spacing between lines of text within 
+    this paragraph.
+    """
 
-    @property
-    def space_before(self):
-        element = self.find('.//w:spacing', namespaces=NAMESPACES)
-        if isinstance(element, FontSpacingProperty):
-            return element.margin_top()
+    space_after = ct.SpaceAfterParagraph('w:pPr/w:spacing')
+    """Specifies the spacing that should be added after the last line in this 
+    paragraph in the document in absolute units.
+    """
 
-    @property
-    def numbering_instance_id(self):
-        element = self.find('.//w:numPr', namespaces=NAMESPACES)
-        if isinstance(element, NumberingProperty):
-            return element.id
+    space_before = ct.SpaceBeforeParagraph('w:pPr/w:spacing')
+    """Specifies the spacing that should be added above the first line in this 
+    paragraph in the document in absolute units."""
 
-    @property
-    def numbering_instance_level(self):
-        element = self.find('.//w:numPr', namespaces=NAMESPACES)
-        if isinstance(element, NumberingProperty):
-            return element.level
+    numbering_instance_id = ct.Integer('w:pPr/w:numPr/w:numId')
+    """Numbering definition instance for the numbered paragraph"""
 
-    @property
-    def page_break_before(self):
-        element = self.find('.//w:pageBreakBefore', namespaces=NAMESPACES)
-        if isinstance(element, PageBreakBeforeProperty):
-            return element.prop_value
+    numbering_instance_level = ct.String('w:pPr/w:numPr/w:ilvl')
+    """Numbering level of the numbering definition instance"""
 
-    style = ct.String('w:pPr/w:pStyle')
+    page_break_before: bool = ct.Boolean('w:pPr/w:pageBreakBefore')
+    """This element specifies that when rendering this document in a paginated 
+    view, the contents of this paragraph are rendered on the start of a new page 
+    in the document.
+    
+    This means that if the contents of the current paragraph would normally be 
+    rendered on the middle of a page in the host document, then the paragraph 
+    shall be rendered on a new page as if the paragraph was preceded by a page 
+    break in the WordprocessingML contents of the document. This property 
+    supersedes any use of the keepNext property, so that if any paragraph wishes 
+    to be on the same page as this paragraph, they are still be separated by a 
+    page break.
+    """
 
-    # @property
-    # def text_align(self):
-    #     element = self.find('.//w:jc', namespaces=NAMESPACES)
-    #     if isinstance(element, JustificationProperty):
-    #         return element.prop_value
+    style: str = ct.String('w:pPr/w:pStyle')
+    """This element specifies the style ID of the paragraph style which shall be 
+    used to format the contents of this paragraph. 
+    """
+
     text_align = ct.Justification('w:pPr/w:jc')
+    """This element specifies the paragraph alignment which shall be applied to 
+    text in this paragraph.
+    """
 
-    @property
-    def text_indent(self):
-        element = self.find('.//w:ind', namespaces=NAMESPACES)
-        if isinstance(element, IndentProperty):
-            return element.text_indent()
+    text_indent: CssUnit = ct.TextIndent('w:pPr/w:ind')
+    """Specifies the additional indentation which shall be applied to, or 
+    removed from, the first line of the parent paragraph.
+    """
 
-    @property
-    def widows_control(self):
-        element = self.find('.//w:widowControl', namespaces=NAMESPACES)
-        if isinstance(element, WidowControlProperty):
-            return element.prop_value
+    widows_control: bool = ct.Boolean('w:pPr/w:widowControl')
+    """This element specifies whether a consumer shall prevent a single line of 
+    this paragraph from being displayed on a separate page from the remaining 
+    content at display time by moving the line onto the following page.
+    
+    When displaying a paragraph in a page, it is sometimes the case that the 
+    first line of that paragraph would display as the last line on one page, 
+    and all subsequent lines would display on the following page. This property
+    ensures that a consumer shall move the single line to the following page as 
+    well to prevent having one line on its own page. As well, if a single line 
+    appears at the top of a page, a consumer shall move the preceding line onto
+    the following page as well, to prevent a single line from being displayed on 
+    a separate page.
+    """
 
 
-class DocxCharacterStyle(DocxStyle, RPrProxy):
+class DocxCharacterStyle(DocxStyle, RPrMixin):
     pass
 
 
-class DocxParagraphStyle(DocxStyle, PPrProxy, RPrProxy):
+class DocxParagraphStyle(DocxStyle, PPrMixin, RPrMixin):
     pass
 
 
-class DocxNumberingStyle(DocxStyle, PPrProxy):
+class DocxNumberingStyle(DocxStyle, PPrMixin):
     pass
 
 
 @wordml('docDefaults')
-class DocDefaults(RPrProxy, PPrProxy):
+class DocDefaults(RPrMixin, PPrMixin, etree.ElementBase):
 
     @property
     def styles(self):
@@ -370,43 +517,8 @@ class DocDefaults(RPrProxy, PPrProxy):
     def styles(self, styles):
         setattr(self, '_styles', styles)
 
-    font_size = ct.HalfPointMeasure('w:rPrDefault/w:rPr/w:sz')
 
-
-class DocxPropertyAdapter(etree.ElementBase, ABC):
-
-    @property
-    @abstractmethod
-    def prop_name(self):
-        pass
-
-    @property
-    @abstractmethod
-    def prop_value(self):
-        pass
-
-    @property
-    def docx_parser(self):
-        return getattr(self, '_docx_parser')
-
-    @docx_parser.setter
-    def docx_parser(self, package):
-        setattr(self, '_docx_parser', package)
-
-    def get_measure(self):
-        """Parse a TblWidth as a Measure"""
-        unit = self.get(w('type'))
-        value = self.get(w('w'))
-        if unit == 'auto':
-            return AutoLength()
-        elif unit == 'dxa':
-            return CssUnit(value, 'twip')
-        elif unit == 'nil':
-            return CssUnit(0)
-        elif unit == 'pct':
-            return Percentage(int(value) / 50)
-        else:
-            raise ValueError(f'Unit "{unit}" is invalid!')
+class DocxPropertyAdapter(etree.ElementBase):
 
     def get_boolean_attribute(self, name):
         """Get the boolean value of an attribute or None if the
@@ -417,21 +529,6 @@ class DocxPropertyAdapter(etree.ElementBase, ABC):
             return not attribute_value.lower() in ('false', '0')
         else:
             return None
-
-    def get_toggle_property(self, name):
-        """Parse a toggle (boolean) property from a child 'name' of the
-        xml element.
-
-        :returns: bool value or None if the child 'name' doesn't exist
-        """
-        prop = self.getparent().find(w(name))
-        if prop is None:
-            return None
-        attribute_value = prop.get(w('val'))
-        if attribute_value:
-            return not attribute_value.lower() in ('false', '0')
-        else:
-            return True
 
     def get_opc_package(self):
         ancestors = list(self.iterancestors(w('style'), w('docDefaults')))
@@ -453,7 +550,7 @@ class DocxPropertyAdapter(etree.ElementBase, ABC):
         return package.font_table
 
 
-class ColorPropertyAdapter(DocxPropertyAdapter, ABC):
+class ColorPropertyAdapter(DocxPropertyAdapter):
 
     color_attribute = 'val'
     theme_color_attribute = 'themeColor'
@@ -476,39 +573,9 @@ class ColorPropertyAdapter(DocxPropertyAdapter, ABC):
         return f'#{color}' if color is not None and color != 'auto' else ''
 
 
-@wordml('caps')
-class AllCapsProperty(DocxPropertyAdapter):
-    prop_name = 'all_caps'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('caps')
-
-
-# @wordml('b')
-# class BoldProperty(DocxPropertyAdapter):
-#     prop_name = 'bold'
-#
-#     @property
-#     def prop_value(self):
-#         return self.get_toggle_property('b')
-
-
 @wordml('bdr')
 class BorderProperty(ColorPropertyAdapter):
-    prop_name = 'border'
     color_attribute = 'color'
-    direction = ''  # Direction (top, left, bottom, right) of the border
-
-    @property
-    def prop_value(self):
-        return Border(
-            color=self.color,
-            padding=self.padding,
-            shadow=self.shadow,
-            style=self.style,
-            width=self.width
-        )
 
     @property
     def color(self):
@@ -574,75 +641,43 @@ class BorderProperty(ColorPropertyAdapter):
 
 @wordml('bottom')
 class BorderBottomProperty(BorderProperty):
-    prop_name = 'border_bottom'
-    direction = 'bottom'
+    pass
 
 
 @wordml('left')
 class BorderLeftProperty(BorderProperty):
-    prop_name = 'border_left'
-    direction = 'left'
+    pass
 
 
 @wordml('right')
 class BorderRightProperty(BorderProperty):
-    prop_name = 'border_right'
-    direction = 'right'
+    pass
 
 
 @wordml('top')
 class BorderTopProperty(BorderProperty):
-    prop_name = 'border_top'
-    direction = 'top'
+    pass
 
 
-# @wordml('dstrike')
-# class DStrikeProperty(DocxPropertyAdapter):
-#     prop_name = 'double_strike'
-#
-#     @property
-#     def prop_value(self):
-#         return self.get_toggle_property('dstrike')
-#
-#
-# @wordml('emboss')
-# class EmbossProperty(DocxPropertyAdapter):
-#     prop_name = 'emboss'
-#
-#     @property
-#     def prop_value(self):
-#         return self.get_toggle_property('emboss')
+@wordml('insideH')
+class BorderInsideHorizontalProperty(BorderProperty):
+    pass
+
+
+@wordml('insideV')
+class BorderInsideVerticalProperty(BorderProperty):
+    pass
 
 
 @wordml('color')
 class FontColorProperty(ColorPropertyAdapter):
-    prop_name = 'font_color'
-
-    @property
-    def prop_value(self):
-        return self.get_color()
-
-
-# @wordml('kern')
-# class FontKerningProperty(DocxPropertyAdapter):
-#     prop_name = 'font_kerning'
-#
-#     @property
-#     def prop_value(self):
-#         value = int(self.get(w('val'))) / 2  # Value is in half-points
-#         return value != 0
+    pass
 
 
 @wordml('rFonts')
 class FontProperty(DocxPropertyAdapter):
-    prop_name = 'font_family'
 
-    def _wrap(self, font_name):
-        """Wrap a font name in quotes if it has a space in it"""
-        if font_name is not None:
-            return f'"{font_name}"' if ' ' in font_name else font_name
-
-    def _get_theme_font_or_font_value(self, font_name):
+    def get_theme_font_or_font_value(self, font_name):
         """Get the theme font associated with the theme or return the
         same value if it's not a theme color
         """
@@ -651,321 +686,22 @@ class FontProperty(DocxPropertyAdapter):
             font_name = theme.get_font(font_name)
         return font_name
 
-    def _get_font_from_font_table(self, font_name):
+    def get_font_from_font_table(self, font_name):
         font_table = self.get_font_table()
         font = font_table.get_font(font_name)
         if font is not None:
             return font.css_family
         return font_name,
 
-    @property
-    def prop_value(self):
-        # What we want to do here is have a set of the fonts, but at the
-        # same time, we want to keep the order so it's easier to use a
-        # dict because the order is guaranteed
-        fonts = {}
-        # Theme values take precedence over explicit values, so we
-        # favour the former
-        attributes = (
-            self.get(w('hAnsiTheme')) or self.get(w('hAnsi')),
-            self.get(w('asciiTheme')) or self.get(w('ascii')),
-            self.get(w('eastAsiaTheme')) or self.get(w('eastAsia')),
-            self.get(w('cstheme')) or self.get(w('cs')),
-        )
-        for attribute in attributes:
-            font_name = self._get_theme_font_or_font_value(attribute)
-            if font_name:
-                for f in self._get_font_from_font_table(font_name):
-                    fonts[self._wrap(f)] = None
-        # Push the generic family at the end. This happens when different
-        # fonts are specified, and they are found in the font table
-        for generic in ST_FontFamily.docx2css.values():
-            if generic in fonts:
-                value = fonts.pop(generic)
-                fonts[generic] = value
-        return ', '.join(fonts.keys())
-
-
-@wordml('spacing')
-class FontSpacingProperty(DocxPropertyAdapter):
-    """
-    This element can represent the font spacing property, the line height,
-    or the margins between paragraphs.
-    """
-
-    @property
-    def prop_name(self):
-        if self.get(w('val')) is not None:
-            return 'letter_spacing'
-        else:
-            return 'line_height', 'margin_top', 'margin_bottom'
-
-    @property
-    def prop_value(self):
-        if self.prop_name == 'letter_spacing':
-            value = self.get(w('val'))
-            return CssUnit(int(value), 'twip')  # Value is in 20th of a point
-        else:
-            return self.line_height(), self.margin_top(), self.margin_bottom()
-
-    def letter_spacing(self):
-        value = self.get(w('val'))
-        if value is not None:
-            return CssUnit(int(value), 'twip')  # Value is in 20th of a point
-
-    def line_height(self):
-        height = self.get(w('line'))
-        rule = self.get(w('lineRule'))
-        if height is not None:
-            if rule in ('atLeast', 'exact'):
-                return CssUnit(int(height), 'twip')
-            elif rule == 'auto':
-                # Height is 240th of a line
-                return int(height) / 240
-                # return AutoLength(height)
-
-    def margin_bottom(self):
-        after = self.get(w('after'))
-        auto = self.get_boolean_attribute('afterAutospacing')
-        if auto is not True and after is not None:
-            # after = int(after) / 20  # Value is in 20th of a point
-            # return f'{after:.2f}pt'
-            return CssUnit(after, 'twip')
-
-    def margin_top(self):
-        before = self.get(w('before'))
-        auto = self.get_boolean_attribute('beforeAutospacing')
-        if auto is not True and before is not None:
-            # before = int(before) / 20  # Value is in 20th of a point
-            # return f'{before:.2f}pt'
-            return CssUnit(before, 'twip')
-
-
-@wordml('highlight')
-class HighlightProperty(DocxPropertyAdapter):
-    prop_name = 'highlight'
-
-    @property
-    def prop_value(self):
-        return self.get(w('val')).lower()
-
-
-@wordml('imprint')
-class ImprintProperty(DocxPropertyAdapter):
-    prop_name = 'imprint'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('imprint')
-
-
-@wordml('ind')
-class IndentProperty(DocxPropertyAdapter):
-    prop_name = (
-        'margin_left',
-        'margin_right',
-        'text_indent',
-    )
-
-    @property
-    def prop_value(self):
-        return (
-            self.margin_left(),
-            self.margin_right(),
-            self.text_indent(),
-        )
-
-    def first_line_indent(self):
-        first_line = self.get(w('firstLine'))
-        if first_line is not None:
-            return CssUnit(int(first_line), 'twip')
-
-    def hanging_indent(self):
-        hanging = self.get(w('hanging'))
-        if hanging is not None:
-            return CssUnit(-1 * int(hanging), 'twip')
-
-    def text_indent(self):
-        indents = (self.first_line_indent(), self.hanging_indent())
-        return next((x for x in indents if x is not None), None)
-
-    def margin_left(self):
-        left = self.get(w('start')) or self.get(w('left'))
-        if left is not None:
-            return CssUnit(int(left), 'twip')
-
-    def margin_right(self):
-        right = self.get(w('end')) or self.get(w('right'))
-        if right is not None:
-            return CssUnit(int(right), 'twip')
-
-
-# @wordml('i')
-# class ItalicProperty(DocxPropertyAdapter):
-#     prop_name = 'italics'
-#
-#     @property
-#     def prop_value(self):
-#         return self.get_toggle_property('i')
-
-
-# @wordml('jc')
-# class JustificationProperty(DocxPropertyAdapter):
-#
-#     @property
-#     def prop_name(self):
-#         if self.getparent().tag == w('pPr'):
-#             return 'text_align'
-#         else:
-#             return 'alignment'
-#
-#     @property
-#     def prop_value(self):
-#         attr_value = self.get(w('val'))
-#         return ST_Jc.css_value(attr_value)
-
-
-@wordml('keepLines')
-class KeepLinesTogetherProperty(DocxPropertyAdapter):
-    prop_name = 'break_inside'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('keepLines')
-
-
-@wordml('keepNext')
-class KeepWithNextParagraphProperty(DocxPropertyAdapter):
-    prop_name = 'break_after'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('keepNext')
-
-
-@wordml('numPr')
-class NumberingProperty(etree.ElementBase):
-
-    @property
-    def id(self):
-        element = self.find(w('numId'))
-        if element is not None:
-            value = int(element.get(w('val')))
-            # numbering = self.styles.opc_package.numbering
-            # return numbering.numbering_instances[value]
-            return value
-
-    @property
-    def level(self):
-        element = self.find(w('ilvl'))
-        return int(element.get(w('val'))) if element is not None else None
-
-
-@wordml('outline')
-class OutlineProperty(DocxPropertyAdapter):
-    prop_name = 'outline'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('outline')
-
-
-@wordml('pageBreakBefore')
-class PageBreakBeforeProperty(DocxPropertyAdapter):
-    prop_name = 'break_before'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('pageBreakBefore')
-
-
-@wordml('position')
-class PositionProperty(DocxPropertyAdapter):
-    prop_name = 'position'
-
-    @property
-    def prop_value(self):
-        value = int(self.get(w('val'))) / 2  # Value in half-points
-        return CssUnit(value, 'pt')
-
 
 @wordml('shd')
 class ShadingProperty(ColorPropertyAdapter):
-    prop_name = 'background_color'
     color_attribute = 'fill'
     theme_color_attribute = 'themeFill'
     theme_shade_attribute = 'themeFillShade'
     theme_tint_attribute = 'themeFillTint'
 
-    @property
-    def prop_value(self):
-        return self.get_color()
-
-
-@wordml('shadow')
-class ShadowProperty(DocxPropertyAdapter):
-    prop_name = 'shadow'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('shadow')
-
-
-@wordml('smallCaps')
-class SmallCapsProperty(DocxPropertyAdapter):
-    prop_name = 'small_caps'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('smallCaps')
-
-
-@wordml('strike')
-class StrikeProperty(DocxPropertyAdapter):
-    prop_name = 'strike'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('strike')
-
 
 @wordml('u')
 class UnderlineProperty(ColorPropertyAdapter):
     color_attribute = 'color'
-    prop_name = 'underline'
-
-    @property
-    def prop_value(self):
-        color = self.get_color()
-        style = ST_Underline.css_value(self.get(w('val')))
-        value = TextDecoration(color=color, style=style)
-        if style != 'none':
-            value.add_line(TextDecoration.UNDERLINE)
-        return value
-
-
-# @wordml('vanish')
-# class VanishProperty(DocxPropertyAdapter):
-#     prop_name = 'visible'
-#
-#     @property
-#     def prop_value(self):
-#         return self.get_toggle_property('vanish')
-
-
-# @wordml('vertAlign')
-# class VerticalAlignProperty(DocxPropertyAdapter):
-#     prop_name = 'vertical_align'
-#
-#     @property
-#     def prop_value(self):
-#         return self.get(w('val'))
-
-
-@wordml('widowControl')
-class WidowControlProperty(DocxPropertyAdapter):
-    prop_name = 'widows'
-
-    @property
-    def prop_value(self):
-        return self.get_toggle_property('widowControl')

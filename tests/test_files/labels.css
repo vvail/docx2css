@@ -16,9 +16,9 @@ body {
 p {
     font-weight: bold;
     font-family: "Lucida Sans Typewriter";
-    line-height: 15.85pt;
     margin-left: 0.1in;
     margin-right: 0.1in;
+    line-height: 15.85pt;
 }
 table {
     margin-left: 0;

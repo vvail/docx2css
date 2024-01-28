@@ -212,7 +212,7 @@ class ParagraphNumberingParserTestCase(TestCase):
         self.assertTrue(counter.bold is False)
         self.assertTrue(counter.italics is False)
         self.assertTrue(counter.all_caps is False)
-        self.assertEqual(0, counter.margin_left)
+        self.assertEqual(0, counter.indent_left)
         self.assertEqual(0, counter.text_indent)
 
         self.assertEqual('allegations-L0', counter.name)

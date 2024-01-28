@@ -271,8 +271,8 @@ class ParagraphFormatting(TextFormatting):
     size.
     """
 
-    margin_left: Optional[CssUnit] = None
-    margin_right: Optional[CssUnit] = None
+    indent_left: Optional[CssUnit] = None
+    indent_right: Optional[CssUnit] = None
     margin_bottom: Optional[CssUnit] = None
     margin_top: Optional[CssUnit] = None
 

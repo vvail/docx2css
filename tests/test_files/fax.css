@@ -30,9 +30,9 @@ h2 {
 }
 h3 {
     font-weight: bold;
+    margin-left: 0.5in;
     break-after: avoid;
     margin-bottom: 12pt;
-    margin-left: 0.5in;
     margin-top: 18pt;
 }
 p.align-right {
@@ -91,8 +91,8 @@ p.allegations-L3 {
     counter-reset: counter1-L3;
 }
 p.signature-date, p.assermentation-date, p.signature-ligne, p.assermentation-ligne {
-    break-after: avoid;
     margin-left: 3.25in;
+    break-after: avoid;
     margin-top: 36pt;
 }
 p.assermentation-date {
@@ -127,9 +127,9 @@ p.center {
 }
 p.citation {
     font-size: 11pt;
-    font-style: italic;
     margin-left: 0.5in;
     margin-right: 0.5in;
+    font-style: italic;
 }
 p.conclusions {
     margin-left: 0.5in;
@@ -145,8 +145,8 @@ p.en-tete-ligne {
     font-size: 1pt;
 }
 p.en-tete-nom {
-    margin-bottom: 0;
     margin-left: 1in;
+    margin-bottom: 0;
     margin-top: 0;
     text-indent: -1in;
 }
@@ -264,8 +264,8 @@ p.retrait {
 }
 p.EnvelopeAddress {
     font-family: Arial;
-    margin-bottom: 0;
     margin-left: 2in;
+    margin-bottom: 0;
     margin-top: 0;
     text-align: start;
 }

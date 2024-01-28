@@ -1436,29 +1436,29 @@ class ParagraphStylesParserTestCase(TestCase):
         #     margin-left: 0.44in;
         #     text-indent: -0.44in;
         self.assertEqual(-0.44, round(style.text_indent.inches, 2))
-        self.assertEqual(0.44, round(style.margin_left.inches, 2))
+        self.assertEqual(0.44, round(style.indent_left.inches, 2))
 
     def test_indent_left_02in_negative_paragraph(self):
         style = self.get_parsed_style_by_name('indent_left_02in_negative_paragraph')
         #     margin-left: -0.2in;
-        self.assertEqual(CssUnit(-0.2, 'in'), style.margin_left)
+        self.assertEqual(CssUnit(-0.2, 'in'), style.indent_left)
 
     def test_indent_left_05in_paragraph(self):
         style = self.get_parsed_style_by_name('indent_left_05in_paragraph')
-        self.assertEqual(CssUnit(0.5, 'in'), style.margin_left)
+        self.assertEqual(CssUnit(0.5, 'in'), style.indent_left)
 
     def test_indent_right_03in_negative_paragraph(self):
         style = self.get_parsed_style_by_name('indent_right_03in_negative_paragraph')
-        self.assertEqual(CssUnit(-0.3, 'in'), style.margin_right)
+        self.assertEqual(CssUnit(-0.3, 'in'), style.indent_right)
 
     def test_indent_right_04in_paragraph(self):
         style = self.get_parsed_style_by_name('indent_right_04in_paragraph')
-        self.assertEqual(CssUnit(0.4, 'in'), style.margin_right)
+        self.assertEqual(CssUnit(0.4, 'in'), style.indent_right)
 
     def test_indent_left_05in_right_02in_mirror_paragraph(self):
         style = self.get_parsed_style_by_name('indent_left_05in_right_02in_mirror_paragraph')
-        self.assertEqual(CssUnit(0.5, 'in'), style.margin_left)
-        self.assertEqual(CssUnit(0.2, 'in'), style.margin_right)
+        self.assertEqual(CssUnit(0.5, 'in'), style.indent_left)
+        self.assertEqual(CssUnit(0.2, 'in'), style.indent_right)
 
     ##########################################################################
     #                                                                        #

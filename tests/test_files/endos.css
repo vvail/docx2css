@@ -47,8 +47,8 @@ h2 {
 }
 h3 {
     font-weight: bold;
-    break-after: avoid;
     margin-left: 0.5in;
+    break-after: avoid;
     margin-top: 18pt;
 }
 p.align-right {
@@ -78,8 +78,8 @@ p.no-space-center-bold {
     text-align: center;
 }
 p.tab {
-    margin-bottom: 5pt;
     margin-left: 0.25in;
+    margin-bottom: 5pt;
     margin-top: 5pt;
 }
 table {
