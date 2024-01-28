@@ -6,7 +6,6 @@ from docx2css.css.serializers import CssStylesheetSerializer, FACTORY
 from docx2css.ooxml.numbering import AbstractNumbering
 from docx2css.ooxml.package import OpcPackage
 from docx2css.ooxml.parsers import DocxParser
-from docx2css.utils import KeyValueProperty
 from tests.test_styles import TestHarness
 
 
@@ -264,8 +263,8 @@ class NumberingSerializerTestCase(TestHarness):
     def get_counter_serializer(self, docx_filename, style_id):
         style = self.get_style(docx_filename, style_id)
         block_serializer = FACTORY.get_block_serializer(style)
-        prop = KeyValueProperty('counter', style.counter)
-        return FACTORY.get_property_serializer(block_serializer, prop)
+        prop = ('counter', style.counter)
+        return FACTORY.get_property_serializer(block_serializer, *prop)
 
     def get_style(self, docx_filename, style_id):
         parser = DocxParser(f'{self.docx_files_location}{docx_filename}')

@@ -681,8 +681,12 @@ class TestTableConditionalFormatting(TestCase):
 def print_style_properties(style):
     print('---------------------------------------------')
     print(f'Testing style "{style.id}" with following properties:')
-    for prop in style.properties():
-        print(f'   {prop.name} = {prop.value}')
+    exclude = ('name', 'id', 'parent', 'parent_id', 'children', 'type')
+    from dataclasses import fields
+    for f in sorted(fields(style), key=lambda x: x.name):
+        value = getattr(style, f.name)
+        if f.name not in exclude and value is not None:
+            print(f'   {f.name} = {value}')
 
 
 class CssSerializerTestHarness(TestCase):

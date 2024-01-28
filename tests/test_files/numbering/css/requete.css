@@ -10,8 +10,8 @@
     }
 }
 body {
-    font-family: "Times New Roman", PMingLiU, 新細明體, serif;
     counter-reset: allegations-L0 allegations-L1 allegations-L2 allegations-L3 counter3-L0 resolutions-L0 resolutions-L1 resolutions-L2;
+    font-family: "Times New Roman", PMingLiU, 新細明體, serif;
 }
 p, h1, h2, h3 {
     font-family: Arial, sans-serif;

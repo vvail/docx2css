@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
 from typing import Optional
 
-from docx2css.utils import CssUnit, KeyValueProperty, PropertyContainer
+from docx2css.utils import CssUnit
 
 
 @dataclass
@@ -62,7 +62,7 @@ class TextDecoration:
 
 
 @dataclass
-class TextFormatting(PropertyContainer):
+class TextFormatting:
     all_caps: Optional[bool] = None
     """Specifies that any lowercase characters in this text run shall be
     formatted for display only as their capital letter character 
@@ -213,18 +213,13 @@ class TextFormatting(PropertyContainer):
     force hidden text to be displayed.
     """
 
-    def get_properties(self, subclass=None, active=False):
-        if subclass is None:
-            subclass = self
-        for f in sorted(fields(subclass), key=lambda x: x.name):
-            prop = KeyValueProperty(f.name, getattr(self, f.name))
-            if active and prop.value is None:
+    def text_properties(self, active=False):
+        for f in sorted(fields(TextFormatting), key=lambda x: x.name):
+            value = getattr(self, f.name)
+            if active and value is None:
                 continue
             else:
-                yield prop
-
-    def text_formatting_fields(self, active=False):
-        return self.get_properties(TextFormatting, active)
+                yield f.name, value
 
     # Not implemented:
     #   * bCs (Complex Script Bold) §2.3.2.2
@@ -294,16 +289,16 @@ class ParagraphFormatting(TextFormatting):
     content at display time by moving the line onto the following page.
     """
 
-    def paragraph_formatting_fields(self, active=False, with_text_fields=True):
+    def paragraph_properties(self, active=False, with_text_fields=True):
         all_fields = set(fields(ParagraphFormatting))
         if not with_text_fields:
             all_fields -= set(fields(TextFormatting))
         for f in sorted(all_fields, key=lambda x: x.name):
-            prop = KeyValueProperty(f.name, getattr(self, f.name))
-            if active and prop.value is None:
+            value = getattr(self, f.name)
+            if active and value is None:
                 continue
             else:
-                yield prop
+                yield f.name, value
 
     # adjustRightInd (Automatically Adjust Right Indent When Using Document Grid) §2.3.1.1
     # autoSpaceDE (Automatically Adjust Spacing of Latin and East Asian Text) §2.3.1.2
@@ -445,7 +440,7 @@ class TableProperties:
 
 
 @dataclass
-class TableRowProperties(PropertyContainer):
+class TableRowProperties:
     alignment: Optional[str] = None
     """Specifies the alignment of a single row in the parent table with 
     respect to the text margins. When the table does not have the same 
@@ -497,6 +492,14 @@ class TableRowProperties(PropertyContainer):
     min_height: Optional[CssUnit] = None
     """Specifies the minimum height of the rows"""
 
+    def table_row_properties(self, active=False):
+        for f in sorted(fields(TableRowProperties), key=lambda x: x.name):
+            value = getattr(self, f.name)
+            if active and value is None:
+                continue
+            else:
+                yield f.name, value
+
     # Not implemented:
     #   * cnfStyle (Table Row Conditional Formatting) §2.4.8
     #   * del (Deleted Table Row) §2.13.5.14
@@ -511,7 +514,7 @@ class TableRowProperties(PropertyContainer):
 
 
 @dataclass
-class TableCellProperties(PropertyContainer):
+class TableCellProperties:
     background_color: Optional[str] = None
     """Specifies the default background color of the table cells.
 
@@ -560,6 +563,14 @@ class TableCellProperties(PropertyContainer):
     wrap.
     """
 
+    def table_cell_properties(self, active=False):
+        for f in sorted(fields(TableCellProperties), key=lambda x: x.name):
+            value = getattr(self, f.name)
+            if active and value is None:
+                continue
+            else:
+                yield f.name, value
+
     # Not implemented:
     #   * cellDel (Table Cell Deletion) §2.13.5.1
     #   * cellIns (Table Cell Insertion) §2.13.5.2
@@ -577,7 +588,7 @@ class BodyStyle(ParagraphFormatting):
 
 
 @dataclass
-class BaseStyle(PropertyContainer, ABC):
+class BaseStyle(ABC):
 
     name: str
     id: str
@@ -618,12 +629,21 @@ class TableConditionalFormatting(ParagraphFormatting, TableProperties):
     default_cell: TableCellProperties = None
     default_row: TableRowProperties = None
 
+    def table_properties(self, active=True):
+        exclude = ('name', 'id', 'parent', 'parent_id', 'children', 'type')
+        for f in fields(self):
+            value = getattr(self, f.name)
+            if f.name in exclude or active and value is None:
+                continue
+            else:
+                yield f.name, value
+
 
 @dataclass
-class TableStyle(ParagraphFormatting, TableProperties, BaseStyle):
+class TableStyle(TableConditionalFormatting, BaseStyle):
     type = 'table'
-    default_cell: TableCellProperties = None
-    default_row: TableRowProperties = None
+    # default_cell: TableCellProperties = None
+    # default_row: TableRowProperties = None
     # conditional formatting:
     whole_table: Optional[TableConditionalFormatting] = None
     odd_columns: Optional[TableConditionalFormatting] = None

@@ -10,8 +10,8 @@
     }
 }
 body {
-    font-family: "Times New Roman", serif;
     counter-reset: counter0-L0 counter0-L1 counter0-L2 counter0-L3 counter1-L0 counter1-L1 counter1-L2 counter3-L0;
+    font-family: "Times New Roman", serif;
 }
 p, h1, h2, h3 {
     font-size: 12pt;

@@ -10,9 +10,9 @@
     }
 }
 body {
+    counter-reset: counter0-L0 counter0-L1 counter0-L2 counter1-L0 counter1-L2 counter1-L3 counter1-L4 counter1-L5;
     font-family: Calibri, sans-serif;
     font-size: 11pt;
-    counter-reset: counter0-L0 counter0-L1 counter0-L2 counter1-L0 counter1-L2 counter1-L3 counter1-L4 counter1-L5;
     line-height: 1.08;
     margin-bottom: 8pt;
 }

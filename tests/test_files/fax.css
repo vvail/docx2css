@@ -10,8 +10,8 @@
     }
 }
 body {
-    font-family: "Times New Roman", PMingLiU, serif;
     counter-reset: counter1-L0 counter1-L1 counter1-L2 counter2-L0 resolutions-L0 resolutions-L1 resolutions-L2;
+    font-family: "Times New Roman", PMingLiU, serif;
 }
 p, h1, h2, h3 {
     font-family: "Bell MT";

@@ -3,27 +3,20 @@ import re
 
 import cssutils
 
-from docx2css.api import (
-    BaseStyle,
-    Counter,
-    TableStyle,
-    TextDecoration,
-)
+from docx2css import api
 from docx2css.stylesheet import Stylesheet
 from docx2css.utils import (
     AutoLength,
     CssUnit,
-    KeyValueProperty,
     Percentage,
-    PropertyContainer,
 )
 
 
 class CssPropertySerializer(ABC):
 
-    def __init__(self, block_serializer: 'CssBlockSerializer', prop: KeyValueProperty):
+    def __init__(self, block_serializer: 'CssBlockSerializer', property_value):
         self.serializer = block_serializer
-        self.property = prop
+        self.property_value = property_value
 
     @abstractmethod
     def set_css_style(self, style_rule: cssutils.css.CSSStyleDeclaration):
@@ -32,8 +25,8 @@ class CssPropertySerializer(ABC):
 
 class CssTablePropertySerializer(CssPropertySerializer, ABC):
 
-    def __init__(self, block_serializer: 'CssTableSerializer', prop: KeyValueProperty):
-        super().__init__(block_serializer, prop)
+    def __init__(self, block_serializer: 'CssTableSerializer', property_value):
+        super().__init__(block_serializer, property_value)
         self.serializer = block_serializer
 
 
@@ -46,30 +39,31 @@ class CssSerializerFactory:
     def register(self, prop_name, serializer_class):
         self.property_serializers[prop_name] = serializer_class
 
-    def register_block_serializer(self, type_name, serializer_class):
-        self.block_serializers[type_name] = serializer_class
+    def register_block_serializer(self, block_class, serializer_class):
+        self.block_serializers[block_class] = serializer_class
 
-    def get_block_serializer(self, api_block):
-        creator = self.block_serializers.get(api_block.type)
+    def get_block_serializer(self, block_value):
+        block_class = block_value.__class__
+        creator = self.block_serializers.get(block_class)
         if not creator:
-            raise ValueError(f'No serializer registered for "{api_block.type}"')
-        return creator(api_block, self)
+            raise ValueError(f'No serializer registered for "{block_class}"')
+        return creator(block_value, self)
 
-    def get_property_serializer(self, style_serializer, prop):
-        creator = self.property_serializers.get(prop.name)
+    def get_property_serializer(self, style_serializer, prop_name, prop_value):
+        creator = self.property_serializers.get(prop_name)
         if not creator:
-            raise ValueError(f'No serializer registered for "{prop.name}"')
-        return creator(style_serializer, prop)
+            raise ValueError(f'No serializer registered for "{prop_name}"')
+        return creator(style_serializer, prop_value)
 
-    def get_property_serializers(self,
-                                 style_serializer: 'CssBlockSerializer',
-                                 property_container: PropertyContainer):
-        """Get the serializers associated with each of the properties of
-        the property_container object. If none is provide, the default
-        will be self.style
-        """
-        for prop in property_container.properties():
-            yield self.get_property_serializer(style_serializer, prop)
+    # def get_property_serializers(self,
+    #                              style_serializer: 'CssBlockSerializer',
+    #                              property_container: PropertyContainer):
+    #     """Get the serializers associated with each of the properties of
+    #     the property_container object. If none is provide, the default
+    #     will be self.style
+    #     """
+    #     for prop in property_container.properties():
+    #         yield self.get_property_serializer(style_serializer, prop)
 
 
 ########################################################################
@@ -96,7 +90,7 @@ class ToggleMixin(CssPropertySerializer, ABC):
         pass
 
     def set_css_style(self, style_rule):
-        if self.property.value is True:
+        if self.property_value is True:
             value = self.css_true
         else:
             value = self.css_false
@@ -118,7 +112,7 @@ class ComplexToggleMixin(ToggleMixin, ABC):
         for name, value, none_value in zip(css_name, css_true, css_false):
             existing = style_rule[name]
             # existing = style_rule.getPropertyValue(name)
-            new_value = value if self.property.value else none_value
+            new_value = value if self.property_value else none_value
 
             # Some docx elements are mutually exclusive, such as strike and
             # dstrike. In this case, both elements will be present and one
@@ -152,12 +146,12 @@ class BackgroundColorSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
         existing = style_rule['background-color']
-        style_rule['background-color'] = self.property.value
+        style_rule['background-color'] = self.property_value
         # It's important to check that the CSS property does not already have
         # a value. If there is one already, leave it alone, unless it's the
         # none value
         if not existing or existing == 'unset':
-            style_rule['background-color'] = self.property.value or 'unset'
+            style_rule['background-color'] = self.property_value or 'unset'
 
 
 class BoldSerializer(ToggleMixin):
@@ -193,13 +187,13 @@ class EmbossSerializer(ComplexToggleMixin):
 class FontColorSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        style_rule['color'] = self.property.value
+        style_rule['color'] = self.property_value
 
 
 class FontFamilySerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        style_rule['font-family'] = self.property.value
+        style_rule['font-family'] = self.property_value
 
 
 class FontKerningSerializer(ToggleMixin):
@@ -211,13 +205,13 @@ class FontKerningSerializer(ToggleMixin):
 class FontSizeSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        style_rule['font-size'] = f'{self.property.value.pt}pt'
+        style_rule['font-size'] = f'{self.property_value.pt}pt'
 
 
 class HighlightSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        value = self.property.value
+        value = self.property_value
         if value == 'none':
             value = 'unset'
         style_rule['background-color'] = value
@@ -238,7 +232,7 @@ class ItalicsSerializer(ToggleMixin):
 class LetterSpacingSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        style_rule['letter-spacing'] = f'{self.property.value.pt}pt'
+        style_rule['letter-spacing'] = f'{self.property_value.pt}pt'
 
 
 class OutlineSerializer(ComplexToggleMixin):
@@ -262,7 +256,7 @@ class PositionSerializer(ComplexToggleMixin):
 
     @property
     def css_true(self):
-        return f'{self.property.value.pt}pt'
+        return f'{self.property_value.pt}pt'
 
 
 class ShadowSerializer(ComplexToggleMixin):
@@ -309,11 +303,11 @@ class UnderlineSerializer(ComplexToggleMixin):
 
     @property
     def css_true(self):
-        has_underline = self.property.value.has_line(TextDecoration.UNDERLINE)
+        has_underline = self.property_value.has_line(api.TextDecoration.UNDERLINE)
         return (
             'underline' if has_underline else 'none',
-            self.property.value.style if has_underline else '',
-            self.property.value.color if has_underline else '',
+            self.property_value.style if has_underline else '',
+            self.property_value.color if has_underline else '',
         )
 
     def can_coexists_with(self, existing_value):
@@ -332,7 +326,7 @@ class VerticalAlignSerializer(ComplexToggleMixin):
 
     @property
     def css_true(self):
-        value = self.property.value
+        value = self.property_value
         if value == 'superscript':
             css_true = (
                 'super',
@@ -385,15 +379,15 @@ class CounterSerializer(CssPropertySerializer):
 
     def css_counter(self, counter=None):
         if counter is None:
-            counter = self.property.value
+            counter = self.property_value
         if counter.style != 'none':
             return f'counter({counter.name}, {counter.style})'
 
     def css_counter_name(self):
-        return self.property.value.name
+        return self.property_value.name
 
     def css_counter_content(self):
-        counter = self.property.value
+        counter = self.property_value
         if counter.style == 'none':
             return
         elif counter.style == '':
@@ -419,10 +413,10 @@ class CounterSerializer(CssPropertySerializer):
         Get a space-separated list of counters to reset at this level
         :return: String
         """
-        return ' '.join(sorted(self.property.value.restart))
+        return ' '.join(sorted(self.property_value.restart))
 
     def handle_margin_left(self, css_style_before, css_style):
-        counter = self.property.value
+        counter = self.property_value
         paragraph = self.serializer.style
         margins = (paragraph.margin_left, counter.margin_left)
         paragraph_margin_left = next((x for x in margins if x is not None), None)
@@ -430,7 +424,7 @@ class CounterSerializer(CssPropertySerializer):
             css_style['margin-left'] = f'{paragraph_margin_left.inches:.2f}in'
 
     def handle_text_indent(self, css_style_before, css_style):
-        counter = self.property.value
+        counter = self.property_value
         paragraph = self.serializer.style
         indents = (paragraph.text_indent, counter.text_indent)
         text_indent = next((x for x in indents if x is not None), None)
@@ -455,22 +449,22 @@ class CounterSerializer(CssPropertySerializer):
                 css_style_before['display'] = 'inline-block'
 
     def serialize_properties(self, css_style, properties):
-        for prop in properties:
-            if prop.name == 'counter':
+        for k, v in properties:
+            if k == 'counter':
                 continue
             factory = self.serializer.factory
-            serializer = factory.get_property_serializer(self.serializer, prop)
+            serializer = factory.get_property_serializer(self.serializer, k, v)
             serializer.set_css_style(css_style)
 
     def set_css_style_before(self, css_style: cssutils.css.CSSStyleDeclaration):
-        text_fields = self.property.value.text_formatting_fields(True)
+        text_fields = self.property_value.text_properties(True)
         paragraph_style = self.serializer.style
-        paragraph_fields = paragraph_style.paragraph_formatting_fields(True, False)
+        paragraph_fields = paragraph_style.paragraph_properties(True, False)
         self.serialize_properties(css_style, text_fields)
         self.serialize_properties(css_style, paragraph_fields)
         css_style['content'] = self.css_counter_content()
         css_style['counter-increment'] = self.css_counter_name()
-        css_style['text-align'] = self.property.value.justification
+        css_style['text-align'] = self.property_value.justification
         return css_style
 
     def set_css_style(self, style_rule: cssutils.css.CSSStyleDeclaration):
@@ -485,7 +479,7 @@ class CounterSerializer(CssPropertySerializer):
 class LineHeightSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        height = self.property.value
+        height = self.property_value
         if isinstance(height, CssUnit):
             style_rule['line-height'] = f'{height.pt}pt'
         else:
@@ -496,7 +490,7 @@ class MarginSerializer(CssPropertySerializer):
     direction = ''
 
     def value(self):
-        return f'{self.property.value.inches:.2f}in'
+        return f'{self.property_value.inches:.2f}in'
 
     def set_css_style(self, style_rule):
         style_rule[f'margin-{self.direction}'] = self.value()
@@ -505,7 +499,7 @@ class MarginSerializer(CssPropertySerializer):
 class MarginVerticalSerializer(MarginSerializer):
 
     def value(self):
-        return f'{self.property.value.pt:.2f}pt'
+        return f'{self.property_value.pt:.2f}pt'
 
 
 class MarginBottomSerializer(MarginVerticalSerializer):
@@ -527,13 +521,13 @@ class MarginTopSerializer(MarginVerticalSerializer):
 class TextAlignSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        style_rule['text-align'] = self.property.value
+        style_rule['text-align'] = self.property_value
 
 
 class TextIndentSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        style_rule['text-indent'] = f'{self.property.value.inches:.2f}in'
+        style_rule['text-indent'] = f'{self.property_value.inches:.2f}in'
 
 
 class WidowsSerializer(ComplexToggleMixin):
@@ -567,19 +561,19 @@ class BorderSerializer(CssPropertySerializer):
         The color is never defined because Word seem to make all shadows black
         """
         width = self.css_border_width()
-        return f'{width} {width}' if width and self.property.value.shadow else ''
+        return f'{width} {width}' if width and self.property_value.shadow else ''
 
     def css_border_width(self):
         """Get the CSS border width. The 'sz' attribute is in 8th of a pt.
         """
-        width = self.property.value.width
+        width = self.property_value.width
         return f'{width.pt:.2f}pt' if width is not None else ''
 
     def css_padding(self):
         """
         Add the padding corresponding to space attribute
         """
-        padding = self.property.value.padding
+        padding = self.property_value.padding
         return f'{padding.pt}pt' if padding else ''
 
     def set_border_rule(self, style_rule: cssutils.css.CSSStyleDeclaration):
@@ -588,11 +582,11 @@ class BorderSerializer(CssPropertySerializer):
         width_property_name = f'border{direction}-width'
         color_property_name = f'border{direction}-color'
         padding_property_name = f'padding{direction}'
-        style = self.property.value.style
+        style = self.property_value.style
         style_rule[style_property_name] = style
         if style != 'none':
             style_rule[width_property_name] = self.css_border_width()
-            style_rule[color_property_name] = self.property.value.color
+            style_rule[color_property_name] = self.property_value.color
             style_rule[padding_property_name] = self.css_padding()
             style_rule['box-shadow'] = self.css_border_shadow()
 
@@ -670,7 +664,7 @@ class BorderTopSerializer(BorderSerializer):
 class RowHeightSerializer(CssPropertySerializer):
     
     def set_css_style(self, style_rule):
-        style_rule['height'] = f'{self.property.value.inches:.2f}in'
+        style_rule['height'] = f'{self.property_value.inches:.2f}in'
 
 
 ########################################################################
@@ -693,7 +687,7 @@ class RowIsHeaderSerializer(CssPropertySerializer):
 class RowSplitSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        if self.property.value is True:
+        if self.property_value is True:
             style_rule['break-inside'] = 'avoid'
         else:
             style_rule['break-inside'] = 'auto'
@@ -702,10 +696,10 @@ class RowSplitSerializer(CssPropertySerializer):
 class TableAlignmentSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        if self.property.value == 'center':
+        if self.property_value == 'center':
             style_rule['margin-left'] = 'auto'
             style_rule['margin-right'] = 'auto'
-        elif self.property.value == 'end':
+        elif self.property_value == 'end':
             style_rule['margin-left'] = 'auto'
 
 
@@ -716,7 +710,7 @@ class TableCellPaddingSerializer(CssTablePropertySerializer):
         selector = self.serializer.css_selector(suffix='td')
         style_rule = self.serializer.get_or_create_rule(selector)
         direction = f'-{self.direction}' if self.direction else self.direction
-        style_rule[f'padding{direction}'] = f'{self.property.value.pt}pt'
+        style_rule[f'padding{direction}'] = f'{self.property_value.pt}pt'
 
 
 class TableCellPaddingBottomSerializer(TableCellPaddingSerializer):
@@ -738,7 +732,7 @@ class TableCellPaddingTopSerializer(TableCellPaddingSerializer):
 class TableCellSpacingSerializer(CssPropertySerializer):
     
     def set_css_style(self, style_rule):
-        value = self.property.value.pt
+        value = self.property_value.pt
         if value == 0:
             style_rule['border-spacing'] = 'unset'
         else:
@@ -748,7 +742,7 @@ class TableCellSpacingSerializer(CssPropertySerializer):
 class TableCellVerticalAlignSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        value = self.property.value
+        value = self.property_value
         if value == 'center':
             value = 'middle'
         style_rule['vertical-align'] = value
@@ -757,31 +751,31 @@ class TableCellVerticalAlignSerializer(CssPropertySerializer):
 class TableCellWrapTextSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        value = 'normal' if self.property.value is True else 'nowrap'
+        value = 'normal' if self.property_value is True else 'nowrap'
         style_rule['white-space'] = value
 
 
 class TableIndentSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        style_rule['margin-left'] = f'{self.property.value.inches:.2f}in'
+        style_rule['margin-left'] = f'{self.property_value.inches:.2f}in'
 
 
 class TableLayoutSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        style_rule['table-layout'] = self.property.value
+        style_rule['table-layout'] = self.property_value
 
 
 class TableWidthSerializer(CssPropertySerializer):
 
     def set_css_style(self, style_rule):
-        if isinstance(self.property.value, AutoLength):
+        if isinstance(self.property_value, AutoLength):
             style_rule['width'] = 'auto'
-        elif isinstance(self.property.value, Percentage):
-            style_rule['width'] = f'{self.property.value.pct:.2f}%'
+        elif isinstance(self.property_value, Percentage):
+            style_rule['width'] = f'{self.property_value.pct:.2f}%'
         else:
-            style_rule['width'] = f'{self.property.value.inches:.2f}in'
+            style_rule['width'] = f'{self.property_value.inches:.2f}in'
 
 
 class TableConditionalFormatting(CssTablePropertySerializer, ABC):
@@ -818,15 +812,16 @@ class TableConditionalFormatting(CssTablePropertySerializer, ABC):
     def border_inside_vertical_selector(self):
         pass
 
-    def serialize_single_property(self, prop, css_rule):
+    def serialize_single_property(self, prop_tuple, css_rule):
         factory = self.serializer.factory
-        handler = factory.get_property_serializer(self.serializer, prop)
+        handler = factory.get_property_serializer(self.serializer, *prop_tuple)
         handler.set_css_style(css_rule)
 
     def serialize_border_inside_horizontal(self, border_property):
         selector = self.border_inside_horizontal_selector()
         factory = self.serializer.factory
-        handler = factory.get_property_serializer(self.serializer, border_property)
+        border_tuple = 'border_inside_horizontal', border_property
+        handler = factory.get_property_serializer(self.serializer, *border_tuple)
         handler.inside_border_selector = selector
         css_rule = self.serializer.get_or_create_rule(selector)
         handler.set_css_style(css_rule)
@@ -834,31 +829,35 @@ class TableConditionalFormatting(CssTablePropertySerializer, ABC):
     def serialize_border_inside_vertical(self, border_property):
         selector = self.border_inside_vertical_selector()
         factory = self.serializer.factory
-        handler = factory.get_property_serializer(self.serializer, border_property)
+        border_tuple = 'border_inside_vertical', border_property
+        handler = factory.get_property_serializer(self.serializer, *border_tuple)
         handler.inside_border_selector = selector
         css_rule = self.serializer.get_or_create_rule(selector)
         handler.set_css_style(css_rule)
 
     def set_css_style(self, style_rule):
         selector = self.cell_selector()
-        self.serializer.serialize_properties(selector, self.property.value)
-        default_cell = self.property.value.default_cell
+        table_properties = self.property_value.table_properties(True)
+        self.serializer.serialize_properties(selector, table_properties)
+        default_cell = self.property_value.default_cell
         default_cell_css_rule = self.serializer.get_or_create_rule(selector)
-        default_row = self.property.value.default_row
+        default_row = self.property_value.default_row
         if default_row:
-            self.serializer.serialize_properties(self.row_selector(), default_row)
+            row_properties = default_row.table_row_properties(True)
+            self.serializer.serialize_properties(self.row_selector(), row_properties)
         if default_cell:
-            for prop in default_cell.properties():
-                if prop.name == 'border_inside_horizontal':
-                    self.serialize_border_inside_horizontal(prop)
-                elif prop.name == 'border_inside_vertical':
-                    self.serialize_border_inside_vertical(prop)
-                elif prop.name.startswith('border'):
-                    func = getattr(self, f'{prop.name}_selector')
+            cell_properties = default_cell.table_cell_properties(True)
+            for k, v in cell_properties:
+                if k == 'border_inside_horizontal':
+                    self.serialize_border_inside_horizontal(v)
+                elif k == 'border_inside_vertical':
+                    self.serialize_border_inside_vertical(v)
+                elif k.startswith('border'):
+                    func = getattr(self, f'{k}_selector')
                     css_rule = self.serializer.get_or_create_rule(func())
-                    self.serialize_single_property(prop, css_rule)
+                    self.serialize_single_property((k, v), css_rule)
                 else:
-                    self.serialize_single_property(prop, default_cell_css_rule)
+                    self.serialize_single_property((k, v), default_cell_css_rule)
 
 
 class OddRowsSerializer(TableConditionalFormatting):
@@ -1240,7 +1239,7 @@ class CssStylesheetSerializer:
         body_style = self.stylesheet.body_style
         root_counters = self.css_root_counters()
         if root_counters:
-            body_style.counter = Counter(restart=root_counters, text='')
+            body_style.counter = api.Counter(restart=root_counters, text='')
         serializer = self.factory.get_block_serializer(body_style)
         self._add_rules(serializer.css_style_rules())
         from itertools import chain
@@ -1282,7 +1281,7 @@ class CssStylesheetSerializer:
 
 class CssBlockSerializer(ABC, metaclass=ABCMeta):
 
-    def __init__(self, style: BaseStyle, factory: CssSerializerFactory):
+    def __init__(self, style: api.BaseStyle, factory: CssSerializerFactory):
         self.__style_rules = {}
         self.factory = factory
         self.style = style
@@ -1303,13 +1302,16 @@ class CssBlockSerializer(ABC, metaclass=ABCMeta):
             self.__style_rules[selector] = rule
         return rule
 
-    def serialize_properties(self, selector: str, container: PropertyContainer):
+    def serialize_properties(self, selector: str, properties):
         """Serialize all properties known to match a selector for the
         container used as argument
         """
         css_style = self.get_or_create_rule(selector)
-        for prop in self.factory.get_property_serializers(self, container):
-            prop.set_css_style(css_style)
+        for prop_tuple in properties:
+            serializer = self.factory.get_property_serializer(self, *prop_tuple)
+            serializer.set_css_style(css_style)
+        # for prop in self.factory.get_property_serializers(self, container):
+        #     prop.set_css_style(css_style)
 
     def css_current_selector(self):
         """Get the selector for the current style only"""
@@ -1337,6 +1339,10 @@ class CssBlockSerializer(ABC, metaclass=ABCMeta):
 
 class CssPageSerializer(CssBlockSerializer):
     css_selector_prefix = ''
+
+    def __init__(self, style: api.PageStyle, factory: CssSerializerFactory):
+        super().__init__(style, factory)
+        self.style = style
 
     def _css_margin_value(self):
         top = self.style.margin_top.inches
@@ -1382,6 +1388,10 @@ class CssPageSerializer(CssBlockSerializer):
 class CssBodySerializer(CssBlockSerializer):
     css_selector_prefix = 'body'
 
+    def __init__(self, style: api.BodyStyle, factory: CssSerializerFactory):
+        super().__init__(style, factory)
+        self.style = style
+
     def css_selector(self, suffix=''):
         return self.css_selector_prefix
 
@@ -1389,17 +1399,27 @@ class CssBodySerializer(CssBlockSerializer):
         return self.css_selector_prefix
 
     def _serialize(self):
-        self.serialize_properties(self.css_selector(), self.style)
+        body_properties = self.style.paragraph_properties(True)
+        self.serialize_properties(self.css_selector(), body_properties)
 
 
 class CssSpanSerializer(CssBlockSerializer):
     css_selector_prefix = 'span'
 
+    def __init__(self, style: api.SpanStyle, factory: CssSerializerFactory):
+        super().__init__(style, factory)
+        self.style = style
+
     def _serialize(self):
-        self.serialize_properties(self.css_selector(), self.style)
+        span_properties = self.style.text_properties(True)
+        self.serialize_properties(self.css_selector(), span_properties)
 
 
 class CssParagraphSerializer(CssBlockSerializer):
+
+    def __init__(self, style: api.ParagraphStyle, factory: CssSerializerFactory):
+        super().__init__(style, factory)
+        self.style = style
 
     def css_current_selector(self):
         class_name = f'{self.style.id}'
@@ -1441,21 +1461,21 @@ class CssParagraphSerializer(CssBlockSerializer):
         # self.serialize_properties(self.css_selector(), self.style)
         css_style = self.get_or_create_rule(self.css_selector())
         counter = None
-        for prop in self.style.paragraph_formatting_fields(active=True):
-            if prop.name == 'counter':
-                counter = prop
+        for k, v in self.style.paragraph_properties(active=True):
+            if k == 'counter':
+                counter = v
                 continue
-            serializer = self.factory.get_property_serializer(self, prop)
+            serializer = self.factory.get_property_serializer(self, k, v)
             serializer.set_css_style(css_style)
         if counter:
-            serializer = self.factory.get_property_serializer(self, counter)
+            serializer = self.factory.get_property_serializer(self, 'counter', counter)
             serializer.set_css_style(css_style)
 
 
 class CssTableSerializer(CssBlockSerializer):
     css_selector_prefix = 'table'
 
-    def __init__(self, style: TableStyle, factory: CssSerializerFactory):
+    def __init__(self, style: api.TableStyle, factory: CssSerializerFactory):
         super().__init__(style, factory)
         self.style = style
 
@@ -1576,23 +1596,26 @@ class CssTableSerializer(CssBlockSerializer):
 
     def _serialize(self):
         # Table properties
-        self.serialize_properties(self.css_selector(), self.style)
+        table_props = self.style.table_properties()
+        self.serialize_properties(self.css_selector(), table_props)
 
         # Default row
         selector = self.css_selector(suffix='tr')
         default_row = self.style.default_row
         if default_row is not None:
-            self.serialize_properties(selector, self.style.default_row)
+            row_properties = default_row.table_row_properties(True)
+            self.serialize_properties(selector, row_properties)
 
         # Default cell
         selector = self.default_cell_css_selector()
         default_cell = self.style.default_cell
         if default_cell is not None:
-            self.serialize_properties(selector, self.style.default_cell)
+            cell_properties = default_cell.table_cell_properties(True)
+            self.serialize_properties(selector, cell_properties)
 
 
-FACTORY.register_block_serializer('page', CssPageSerializer)
-FACTORY.register_block_serializer('body', CssBodySerializer)
-FACTORY.register_block_serializer('span', CssSpanSerializer)
-FACTORY.register_block_serializer('p', CssParagraphSerializer)
-FACTORY.register_block_serializer('table', CssTableSerializer)
+FACTORY.register_block_serializer(api.PageStyle, CssPageSerializer)
+FACTORY.register_block_serializer(api.BodyStyle, CssBodySerializer)
+FACTORY.register_block_serializer(api.SpanStyle, CssSpanSerializer)
+FACTORY.register_block_serializer(api.ParagraphStyle, CssParagraphSerializer)
+FACTORY.register_block_serializer(api.TableStyle, CssTableSerializer)

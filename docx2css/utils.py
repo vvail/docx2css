@@ -1,22 +1,5 @@
-from collections import namedtuple
 import colorsys
 import textwrap
-from dataclasses import dataclass, fields
-
-KeyValueProperty = namedtuple('KeyValueProperty', ['name', 'value'])
-
-
-@dataclass
-class PropertyContainer:
-
-    def properties(self):
-        exclude = ('name', 'id', 'parent', 'parent_id', 'children', 'type')
-
-        def accept(f):
-            result = f.name not in exclude and getattr(self, f.name) is not None
-            return result
-        return (KeyValueProperty(f.name, getattr(self, f.name))
-                for f in fields(self) if accept(f))
 
 
 class CSSColor:
