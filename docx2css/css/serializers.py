@@ -1599,6 +1599,10 @@ class CssTableSerializer(CssBlockSerializer):
         table_props = self.style.table_properties()
         self.serialize_properties(self.css_selector(), table_props)
 
+        # Conditional formatting
+        conditional_props = self.style.table_conditional_formatting_properties()
+        self.serialize_properties(self.css_selector(), conditional_props)
+
         # Default row
         selector = self.css_selector(suffix='tr')
         default_row = self.style.default_row

@@ -631,7 +631,7 @@ class TableConditionalFormatting(ParagraphFormatting, TableProperties):
 
     def table_properties(self, active=True):
         exclude = ('name', 'id', 'parent', 'parent_id', 'children', 'type')
-        for f in fields(self):
+        for f in fields(TableConditionalFormatting):
             value = getattr(self, f.name)
             if f.name in exclude or active and value is None:
                 continue
@@ -642,8 +642,6 @@ class TableConditionalFormatting(ParagraphFormatting, TableProperties):
 @dataclass
 class TableStyle(TableConditionalFormatting, BaseStyle):
     type = 'table'
-    # default_cell: TableCellProperties = None
-    # default_row: TableRowProperties = None
     # conditional formatting:
     whole_table: Optional[TableConditionalFormatting] = None
     odd_columns: Optional[TableConditionalFormatting] = None
@@ -658,6 +656,29 @@ class TableStyle(TableConditionalFormatting, BaseStyle):
     top_right_cell: Optional[TableConditionalFormatting] = None
     bottom_left_cell: Optional[TableConditionalFormatting] = None
     bottom_right_cell: Optional[TableConditionalFormatting] = None
+
+    def table_conditional_formatting_properties(self, active=True):
+        all_fields = (
+            'whole_table',
+            'odd_columns',
+            'even_columns',
+            'odd_rows',
+            'even_rows',
+            'first_row',
+            'last_row',
+            'first_column',
+            'last_column',
+            'top_left_cell',
+            'top_right_cell',
+            'bottom_left_cell',
+            'bottom_right_cell',
+        )
+        for f in fields(self):
+            value = getattr(self, f.name)
+            if f.name not in all_fields or active and value is None:
+                continue
+            else:
+                yield f.name, value
 
 
 @dataclass
